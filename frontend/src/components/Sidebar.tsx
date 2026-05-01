@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
-import { useWorkspaceStore } from '../store';
+import React, { useState, useEffect } from 'react';
+import { useWorkspaceStore, Workspace } from '../store';
 import { useThemeStore, ThemeType } from '../themeStore';
-import { Folder, Plus, Trash2, Command, Palette, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
+
+interface ContextMenu {
+  x: number;
+  y: number;
+  workspace: Workspace;
+}
 
 const Sidebar: React.FC = () => {
   const store = useWorkspaceStore();
@@ -13,10 +19,12 @@ const Sidebar: React.FC = () => {
   const setActiveWorkspace = store?.setActiveWorkspace;
   const createWorkspace = store?.createWorkspace;
   const deleteWorkspace = store?.deleteWorkspace;
+  const updateWorkspacePath = store?.updateWorkspacePath;
 
   const [hoveredWs, setHoveredWs] = useState<string | null>(null);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
 
   const handleCreateWorkspace = async () => {
     if (!createWorkspace) return;
@@ -32,6 +40,33 @@ const Sidebar: React.FC = () => {
       console.error('Failed to select directory:', err);
     }
   };
+
+  const handleChangeDirectory = async (wsId: string) => {
+    try {
+        const path = await SelectDirectory();
+        if (path && updateWorkspacePath) {
+            await updateWorkspacePath(wsId, path);
+        }
+    } catch (err) {
+        console.error('Failed to change directory:', err);
+    }
+    setContextMenu(null);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, ws: Workspace) => {
+    e.preventDefault();
+    setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        workspace: ws
+    });
+  };
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
 
   const themes: { id: ThemeType; label: string; desc: string }[] = [
     { id: 'joy', label: 'Joy', desc: 'Vibrant, Playful Dark' },
@@ -109,6 +144,7 @@ const Sidebar: React.FC = () => {
             key={ws.id} 
             className={`workspace-item ${activeWorkspaceId === ws.id ? 'active' : ''}`}
             onClick={() => setActiveWorkspace && setActiveWorkspace(ws.id)}
+            onContextMenu={(e) => handleContextMenu(e, ws)}
             onMouseEnter={() => setHoveredWs(ws.id)}
             onMouseLeave={() => setHoveredWs(null)}
             title={isCollapsed ? ws.name : ''}
@@ -226,6 +262,49 @@ const Sidebar: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Workspace Context Menu */}
+      {contextMenu && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            backgroundColor: 'var(--bg-sidebar)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding: '4px',
+            zIndex: 20000,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            minWidth: '180px'
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div 
+            onClick={() => handleChangeDirectory(contextMenu.workspace.id)}
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <Edit3 size={14} />
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>Change Directory</span>
+          </div>
+          <div 
+            onClick={() => {
+                if (confirm(`Delete workspace "${contextMenu.workspace.name}"?`)) {
+                    deleteWorkspace && deleteWorkspace(contextMenu.workspace.id);
+                }
+                setContextMenu(null);
+            }}
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px', color: '#ff4d4f' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <Trash2 size={14} />
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>Delete</span>
           </div>
         </div>
       )}

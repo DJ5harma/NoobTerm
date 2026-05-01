@@ -3,7 +3,7 @@ import { workspace } from '../wailsjs/go/models';
 import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace } from '../wailsjs/go/main/App';
 import { v4 as uuidv4 } from 'uuid';
 
-type Workspace = workspace.Workspace;
+export type Workspace = workspace.Workspace;
 
 interface WorkspaceState {
   workspaces: Workspace[];
@@ -20,6 +20,10 @@ interface WorkspaceState {
   
   updateActiveWorkspaceLayout: (layoutJson: string) => void;
   addCommandToActiveWorkspace: (name: string, cmdStr: string) => Promise<void>;
+  updateWorkspacePath: (id: string, newPath: string) => Promise<void>;
+  toggleCommandGlobal: (commandId: string) => Promise<void>;
+  importCommands: (sourceWorkspaceId: string, commandIds: string[]) => Promise<void>;
+  removeCommand: (commandId: string) => Promise<void>;
 }
 
 const getNewDefaultLayout = () => JSON.stringify({
@@ -160,6 +164,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       id,
       name,
       command: cmdStr,
+      isGlobal: false,
       variables: []
     };
 
@@ -188,6 +193,90 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         console.error("Failed to save workspace after adding command:", err);
         alert("Saved to UI, but failed to persist to disk: " + err);
       }
+    }
+  },
+
+  updateWorkspacePath: async (id, newPath) => {
+    const { workspaces } = get();
+    const updatedWorkspaces = workspaces.map(ws => 
+      ws.id === id ? { ...ws, path: newPath } : ws
+    ) as Workspace[];
+
+    set({ workspaces: updatedWorkspaces });
+    
+    const updatedWs = updatedWorkspaces.find(w => w.id === id);
+    if (updatedWs) {
+      await SaveWorkspace(updatedWs as any);
+    }
+  },
+
+  toggleCommandGlobal: async (commandId) => {
+    const { workspaces } = get();
+    const updatedWorkspaces = workspaces.map(ws => ({
+      ...ws,
+      commands: (ws.commands || []).map(cmd => 
+        cmd.id === commandId ? { ...cmd, isGlobal: !cmd.isGlobal } : cmd
+      )
+    })) as Workspace[];
+
+    set({ workspaces: updatedWorkspaces });
+    
+    // Save all workspaces to persist global flag
+    await Promise.all(updatedWorkspaces.map(ws => SaveWorkspace(ws as any)));
+  },
+
+  importCommands: async (sourceWorkspaceId, commandIds) => {
+    const { workspaces, activeWorkspaceId } = get();
+    if (!activeWorkspaceId) return;
+
+    const sourceWs = workspaces.find(w => w.id === sourceWorkspaceId);
+    if (!sourceWs) return;
+
+    const commandsToImport = (sourceWs.commands || [])
+        .filter(cmd => commandIds.includes(cmd.id))
+        .map(cmd => ({ 
+            ...cmd, 
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+            isGlobal: false // Imported commands start as local
+        }));
+
+    const updatedWorkspaces = workspaces.map(ws => {
+        if (ws.id === activeWorkspaceId) {
+            return {
+                ...ws,
+                commands: [...(ws.commands || []), ...commandsToImport]
+            };
+        }
+        return ws;
+    }) as Workspace[];
+
+    set({ workspaces: updatedWorkspaces });
+    
+    const activeWs = updatedWorkspaces.find(w => w.id === activeWorkspaceId);
+    if (activeWs) {
+        await SaveWorkspace(activeWs as any);
+    }
+  },
+
+  removeCommand: async (commandId) => {
+    const { workspaces, activeWorkspaceId } = get();
+    if (!activeWorkspaceId) return;
+
+    const updatedWorkspaces = workspaces.map(ws => {
+      if (ws.id === activeWorkspaceId) {
+        return {
+          ...ws,
+          commands: (ws.commands || []).filter(cmd => cmd.id !== commandId)
+        };
+      }
+      return ws;
+    }) as Workspace[];
+
+    set({ workspaces: updatedWorkspaces });
+    
+    const activeWs = updatedWorkspaces.find(w => w.id === activeWorkspaceId);
+    if (activeWs) {
+        await SaveWorkspace(activeWs as any);
     }
   }
 }));

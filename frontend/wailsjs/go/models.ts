@@ -19,6 +19,7 @@ export namespace workspace {
 	    name: string;
 	    command: string;
 	    group?: string;
+	    isGlobal: boolean;
 	    variables?: CommandVariable[];
 	
 	    static createFrom(source: any = {}) {
@@ -31,6 +32,7 @@ export namespace workspace {
 	        this.name = source["name"];
 	        this.command = source["command"];
 	        this.group = source["group"];
+	        this.isGlobal = source["isGlobal"];
 	        this.variables = this.convertValues(source["variables"], CommandVariable);
 	    }
 	

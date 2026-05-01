@@ -15,6 +15,7 @@ type Command struct {
 	Name      string            `json:"name"`
 	Command   string            `json:"command"`
 	Group     string            `json:"group,omitempty"`
+	IsGlobal  bool              `json:"isGlobal"`
 	Variables []CommandVariable `json:"variables,omitempty"`
 }
 
