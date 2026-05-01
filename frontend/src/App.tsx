@@ -89,32 +89,47 @@ function App() {
     }
   }, [activeWorkspaceId, activeWorkspace, model, executeStartupCommands]);
 
+  const findFirstTabset = useCallback((currentModel: Model): string | null => {
+    let targetTabset: string | null = null;
+    currentModel.visitNodes((node) => {
+        if (!targetTabset && node.getType() === 'tabset') {
+            targetTabset = node.getId();
+        }
+    });
+    return targetTabset;
+  }, []);
+
+  const runCommandInNewTerminal = useCallback((currentModel: Model, command: string) => {
+    const targetTabset = findFirstTabset(currentModel);
+    if (targetTabset) {
+        const newId = uuidv4();
+        currentModel.doAction(Actions.addNode({
+            type: "tab",
+            name: "Running...",
+            component: "terminal",
+            config: { id: newId }
+        }, targetTabset, DockLocation.CENTER, -1));
+
+        // Wait longer for backend PTY and terminal mounting
+        setTimeout(() => {
+            WriteTerminal(newId, command + '\r');
+        }, 1000);
+    }
+  }, [findFirstTabset]);
+
   // Process Pending Navigations (after model is loaded/ready)
   useEffect(() => {
-    if (model && pendingNavigation.current) {
+    if (model && pendingNavigation.current && activeWorkspaceId === lastWorkspaceId.current) {
         const { terminalId, command } = pendingNavigation.current;
         pendingNavigation.current = null;
 
         if (terminalId) {
-            // Select existing tab
             model.doAction(Actions.selectTab(terminalId));
         } else if (command) {
-            // Run command in new terminal
-            const newId = uuidv4();
-            model.doAction(Actions.addNode({
-                type: "tab",
-                name: "Command Terminal",
-                component: "terminal",
-                config: { id: newId }
-            }, "flexlayout-main-tabset", DockLocation.CENTER, -1));
-
-            // Wait for terminal to mount and send command
-            setTimeout(() => {
-                WriteTerminal(newId, command + '\r');
-            }, 500);
+            runCommandInNewTerminal(model, command);
         }
     }
-  }, [model, activeWorkspaceId]);
+  }, [model, activeWorkspaceId, runCommandInNewTerminal]);
 
   const saveLayout = useCallback(() => {
     if (model) {
@@ -248,14 +263,7 @@ function App() {
         }
     } else if (result.type === 'command') {
         if (result.workspaceId === activeWorkspaceId) {
-            const newId = uuidv4();
-            model?.doAction(Actions.addNode({
-                type: "tab",
-                name: "Command Terminal",
-                component: "terminal",
-                config: { id: newId }
-            }, "flexlayout-main-tabset", DockLocation.CENTER, -1));
-            setTimeout(() => WriteTerminal(newId, result.command + '\r'), 500);
+            if (model && result.command) runCommandInNewTerminal(model, result.command);
         } else {
             pendingNavigation.current = { command: result.command };
             setActiveWorkspace(result.workspaceId);
