@@ -17,10 +17,13 @@ jobs:
         include:
           - platform: 'linux/amd64'
             os: 'ubuntu-latest'
+            artifact-name: 'linux-amd64'
           - platform: 'windows/amd64'
             os: 'windows-latest'
+            artifact-name: 'windows-amd64'
           - platform: 'darwin/universal'
             os: 'macos-latest'
+            artifact-name: 'darwin-universal'
 
     steps:
       - name: Checkout
@@ -41,7 +44,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NoobTerm-${{ matrix.platform }}
+          name: NoobTerm-${{ matrix.artifact-name }}
           path: |
             build/bin/*
             build/windows/installer/*.exe
