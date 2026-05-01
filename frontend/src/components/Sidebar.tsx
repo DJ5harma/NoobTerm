@@ -80,7 +80,6 @@ const Sidebar: React.FC = () => {
 
   const themes: { id: ThemeType; label: string; desc: string }[] = [
     { id: 'joy', label: 'Joy', desc: 'Vibrant, Playful Dark' },
-    { id: 'lightfun', label: 'Light Fun', desc: 'Sunny, Friendly Light' },
     { id: 'pro', label: 'Pro', desc: 'Sleek, Stealth Black' },
     { id: 'normal', label: 'Normal', desc: 'Balanced Modern' },
   ];

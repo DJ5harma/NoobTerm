@@ -12,9 +12,10 @@ interface TerminalProps {
   id: string; 
   cwd?: string;
   onTitleChange?: (title: string) => void;
+  onRunningChange?: (isRunning: boolean) => void;
 }
 
-const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange }) => {
+const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalInstance = useRef<XTerm | null>(null);
   const { theme } = useThemeStore();
@@ -72,7 +73,12 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange }) => {
         const outputHandler = (data: string) => {
             if (isMounted) xterm.write(data);
         };
+        const stateHandler = (isRunning: boolean) => {
+            if (isMounted && onRunningChange) onRunningChange(isRunning);
+        };
+
         EventsOn(`terminal-output-${backendId}`, outputHandler);
+        EventsOn(`terminal-state-${backendId}`, stateHandler);
 
         // 7. Sizing & Focus
         // @ts-ignore
@@ -100,80 +106,45 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange }) => {
             });
         }
 
-        // Force fit
-        fitAddon.fit();
-        
         return () => {
-          resizeObserver.disconnect();
-          EventsOff(`terminal-output-${backendId}`);
+            isMounted = false;
+            EventsOff(`terminal-output-${backendId}`);
+            EventsOff(`terminal-state-${backendId}`);
+            resizeObserver.disconnect();
+            xterm.dispose();
         };
+
       } catch (err) {
-        xterm.write(`\r\n\x1b[31mError connecting to terminal: ${err}\x1b[0m\r\n`);
+        console.error("Terminal initialization failed", err);
       }
     };
 
-    const cleanupPromise = init();
+    const cleanup = init();
 
     return () => {
-      isMounted = false;
-      xterm.dispose(); // Cleanup frontend only
-      cleanupPromise.then(cleanup => cleanup && cleanup());
+        cleanup.then(fn => fn && fn());
     };
-  }, [id, theme]);
+  }, [id, theme]); // Re-init only on ID/Theme change
+
+  useEffect(() => {
+    if (terminalInstance.current) {
+        terminalInstance.current.options.theme = getTerminalTheme(theme);
+    }
+  }, [theme]);
 
   return (
-    <div 
-      className={`terminal-card ${isFocused ? 'focused' : ''}`}
-      onMouseDown={(e) => {
-          e.stopPropagation();
-          setActiveTerminal(id);
-          terminalInstance.current?.focus();
-      }}
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        display: 'flex',
-        padding: '10px',
-        backgroundColor: 'var(--bg-main)',
-        boxSizing: 'border-box'
-      }}
-    >
-      <div 
-        ref={containerRef} 
-        style={{ flex: 1, width: '100%', height: '100%', overflow: 'hidden' }} 
-        className="fade-in"
-      />
+    <div style={{ width: '100%', height: '100%', backgroundColor: getTerminalTheme(theme).background }}>
+        <div ref={containerRef} style={{ width: '100%', height: '100%', padding: '10px' }} />
     </div>
   );
 };
 
-// High-Contrast Terminal Color Schemes
 function getTerminalTheme(theme: string) {
     const common = {
-        black: '#000000',
-        red: '#cd3131',
-        green: '#0dbc79',
-        yellow: '#e5e510',
-        blue: '#2472c8',
-        magenta: '#bc3fbc',
-        cyan: '#11a8cd',
-        white: '#e5e5e5',
-        brightBlack: '#666666',
-        brightRed: '#f14c4c',
-        brightGreen: '#23d18b',
-        brightYellow: '#f5f543',
-        brightBlue: '#3b8eea',
-        brightMagenta: '#d670d6',
-        brightCyan: '#29b8db',
-        brightWhite: '#e5e5e5',
-        selectionBackground: 'rgba(255, 255, 255, 0.15)',
+        fontFamily: '"JetBrains Mono", monospace',
     };
-
     if (theme === 'pro') {
-        return { ...common, background: '#000000', foreground: '#ffffff', cursor: '#ffffff' };
-    }
-    if (theme === 'lightfun') {
-        return { ...common, background: '#ffffff', foreground: '#243b53', cursor: '#ff4785', selectionBackground: 'rgba(0, 0, 0, 0.1)' };
+        return { ...common, background: '#0a0a0a', foreground: '#ffffff', cursor: '#ffffff' };
     }
     if (theme === 'joy') {
         return { ...common, background: '#1e1e2e', foreground: '#cdd6f4', cursor: '#39ff14' };

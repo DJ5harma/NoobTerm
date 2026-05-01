@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/aymanbagabas/go-pty"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -15,12 +16,13 @@ import (
 const maxBufferBytes = 100 * 1024 
 
 type Session struct {
-	ID     string
-	PTY    pty.Pty
-	Cmd    *pty.Cmd
-	Quit   chan struct{}
-	Buffer bytes.Buffer
-	mu     sync.Mutex
+	ID        string
+	PTY       pty.Pty
+	Cmd       *pty.Cmd
+	Quit      chan struct{}
+	Buffer    bytes.Buffer
+	IsRunning bool
+	mu        sync.Mutex
 }
 
 type Manager struct {
@@ -91,6 +93,28 @@ func (m *Manager) Create(id, cwd string) (string, error) {
 
 func (m *Manager) readOutput(session *Session) {
 	buf := make([]byte, 1024*10)
+	lastActivity := time.Now()
+	
+	// Start a ticker to check for inactivity and reset IsRunning
+	// Using a separate goroutine to manage the timer
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-session.Quit:
+				return
+			case <-ticker.C:
+				session.mu.Lock()
+				if session.IsRunning && time.Since(lastActivity) > 2*time.Second {
+					session.IsRunning = false
+					wailsRuntime.EventsEmit(m.ctx, "terminal-state-"+session.ID, false)
+				}
+				session.mu.Unlock()
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-session.Quit:
@@ -101,6 +125,12 @@ func (m *Manager) readOutput(session *Session) {
 				data := buf[:n]
 				
 				session.mu.Lock()
+				lastActivity = time.Now()
+				if !session.IsRunning {
+					session.IsRunning = true
+					wailsRuntime.EventsEmit(m.ctx, "terminal-state-"+session.ID, true)
+				}
+
 				if session.Buffer.Len()+len(data) > maxBufferBytes {
 					session.Buffer.Reset()
 				}

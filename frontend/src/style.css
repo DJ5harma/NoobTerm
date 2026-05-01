@@ -33,22 +33,6 @@
   --focus-glow: rgba(255, 255, 255, 0.3);
 }
 
-/* LIGHT FUN THEME */
-[data-theme='lightfun'] {
-  --bg-main: #ffffff;
-  --bg-sidebar: #f8fbff;
-  --bg-header: #e1e9f0;
-  --bg-active: #ff4785;
-  --accent: #ff4785;
-  --text-main: #2c3e50;
-  --text-bright: #1a2533;
-  --border: #d1d9e6;
-  --radius: 30px;
-  --font-sans: 'Quicksand', sans-serif;
-  --focus-color: #ff4785;
-  --focus-glow: rgba(255, 71, 133, 0.3);
-}
-
 /* JOY THEME (Vibrant Dark) */
 [data-theme='joy'] {
   --bg-main: #1e1e2e;
@@ -182,5 +166,16 @@ html, body, #root {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Animations */
+@keyframes pulse-animation {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.pulse-dot {
+  animation: pulse-animation 2s infinite ease-in-out;
 }
 

@@ -5,7 +5,7 @@ import Sidebar from './components/Sidebar';
 import Terminal from './components/Terminal';
 import CommandBar from './components/CommandBar';
 import GlobalModal from './components/GlobalModal';
-import { useWorkspaceStore } from './store';
+import { useWorkspaceStore, Workspace } from './store';
 import { useThemeStore } from './themeStore';
 import { useModalStore } from './modalStore';
 import { CloseTerminal } from '../wailsjs/go/main/App';
@@ -25,6 +25,7 @@ function App() {
 
   const [model, setModel] = useState<Model | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [runningTerminals, setRunningTerminals] = useState<Set<string>>(new Set());
   
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   const lastWorkspaceId = useRef<string | null>(null);
@@ -149,6 +150,14 @@ function App() {
         <Terminal 
             id={config.id} 
             cwd={activeWorkspace?.path} 
+            onRunningChange={(isRunning) => {
+                setRunningTerminals(prev => {
+                    const next = new Set(prev);
+                    if (isRunning) next.add(config.id);
+                    else next.delete(config.id);
+                    return next;
+                });
+            }}
             onTitleChange={(title) => {
                 // 1. Clean up common shell suffixes
                 let cleanTitle = title.trim()
@@ -210,6 +219,24 @@ function App() {
     }
   }, [addTerminalToTabset]);
 
+  const onRenderTab = useCallback((node: TabNode, renderValues: any) => {
+    const config = node.getConfig();
+    if (config && config.id && runningTerminals.has(config.id)) {
+        renderValues.content = (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="pulse-dot" style={{ 
+                    width: '8px', 
+                    height: '8px', 
+                    borderRadius: '50%', 
+                    backgroundColor: 'var(--accent)',
+                    boxShadow: '0 0 8px var(--accent)'
+                }} />
+                <span>{renderValues.content}</span>
+            </div>
+        );
+    }
+  }, [runningTerminals]);
+
   const onContextMenu = useCallback((node: TabNode | TabSetNode | BorderNode, event: React.MouseEvent) => {
     if (node instanceof TabNode) {
         event.preventDefault();
@@ -266,6 +293,7 @@ function App() {
                 onModelChange={onModelChange}
                 onAction={onAction}
                 onRenderTabSet={onRenderTabSet}
+                onRenderTab={onRenderTab}
                 onContextMenu={onContextMenu}
               />
             </div>
