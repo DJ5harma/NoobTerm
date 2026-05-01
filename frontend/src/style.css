@@ -129,10 +129,10 @@ html, body, #root {
   overflow: hidden;
 }
 
-/* THE SELECTION - UNMISTAKABLE 6PX OUTLINE */
+/* THE SELECTION - UNMISTAKABLE 4PX OUTLINE */
 .terminal-card.focused {
-  outline: 6px solid var(--focus-color) !important;
-  outline-offset: -6px;
+  outline: 4px solid var(--focus-color) !important;
+  outline-offset: -4px;
   box-shadow: 0 0 40px var(--focus-glow), inset 0 0 20px var(--focus-glow) !important;
   z-index: 1000 !important;
 }
