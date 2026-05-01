@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWorkspaceStore, Workspace } from '../store';
 import { useThemeStore, ThemeType } from '../themeStore';
 import { useModalStore } from '../modalStore';
-import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react';
+import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
 
 interface ContextMenu {
@@ -11,7 +11,11 @@ interface ContextMenu {
   workspace: Workspace;
 }
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onSearchClick?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
   const store = useWorkspaceStore();
   const { theme, setTheme } = useThemeStore();
   
@@ -137,17 +141,48 @@ const Sidebar: React.FC = () => {
           textTransform: 'uppercase',
           color: 'var(--text-bright)'
         }}>Termspace</span>}
-        <div onClick={handleCreateWorkspace} style={{ cursor: 'pointer' }}>
-            <Plus 
-                size={20} 
-                strokeWidth={3} 
-                style={{ color: 'var(--accent)' }} 
-            />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div onClick={handleCreateWorkspace} style={{ cursor: 'pointer' }} title="New Workspace">
+                <Plus 
+                    size={20} 
+                    strokeWidth={3} 
+                    style={{ color: 'var(--accent)' }} 
+                />
+            </div>
         </div>
       </div>
 
       {/* Workspace List */}
       <div style={{ flex: 1, overflowY: 'auto', padding: isCollapsed ? '16px 8px' : '16px 10px' }}>
+        {/* Search Bar Button */}
+        <div 
+            onClick={onSearchClick}
+            style={{
+                padding: isCollapsed ? '12px 0' : '10px 14px',
+                marginBottom: '20px',
+                backgroundColor: 'var(--bg-active)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                gap: '12px',
+                transition: 'all 0.2s',
+                opacity: 0.8
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+        >
+            <Search size={16} color="var(--text-muted)" />
+            {!isCollapsed && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Search...</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', backgroundColor: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px' }}>Ctrl P</span>
+                </div>
+            )}
+        </div>
+
         {workspaces.map(ws => (
           <div 
             key={ws.id} 

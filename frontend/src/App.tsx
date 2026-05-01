@@ -9,6 +9,7 @@ import CommandBar from './components/CommandBar';
 import GlobalModal from './components/GlobalModal';
 import TabLabel from './components/TabLabel';
 import TerminalContextMenu from './components/TerminalContextMenu';
+import CommandPalette, { SearchResult } from './components/CommandPalette';
 
 // Hooks & Stores
 import { useWorkspaceStore } from './store';
@@ -18,7 +19,7 @@ import { useTerminalMonitor } from './hooks/useTerminalMonitor';
 import { useStartupCommands } from './hooks/useStartupCommands';
 
 // Utils & Backend
-import { CloseTerminal } from '../wailsjs/go/main/App';
+import { CloseTerminal, WriteTerminal } from '../wailsjs/go/main/App';
 import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { cleanTerminalTitle } from './utils/terminal';
@@ -31,15 +32,19 @@ interface ContextMenu {
 
 function App() {
   const { theme } = useThemeStore();
-  const { workspaces, activeWorkspaceId, fetchWorkspaces, updateActiveWorkspaceLayout } = useWorkspaceStore();
+  const { workspaces, activeWorkspaceId, fetchWorkspaces, setActiveWorkspace, updateActiveWorkspaceLayout } = useWorkspaceStore();
   const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
   
-  // Custom Hooks for specific logic
+  // Custom Hooks
   const { runningTerminals, terminalStats, handleRunningChange, handleStatsChange } = useTerminalMonitor();
   const { executeStartupCommands } = useStartupCommands();
 
   const [model, setModel] = useState<Model | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  
+  // Ref to handle navigation actions after a workspace switch
+  const pendingNavigation = useRef<{ terminalId?: string; command?: string } | null>(null);
   
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   const lastWorkspaceId = useRef<string | null>(null);
@@ -47,6 +52,18 @@ function App() {
   useEffect(() => {
     fetchWorkspaces();
   }, [fetchWorkspaces]);
+
+  // Keyboard Shortcuts (Global)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+            e.preventDefault();
+            setIsPaletteOpen(prev => !prev);
+        }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Handle Workspace Switching & Layout Loading
   useEffect(() => {
@@ -71,6 +88,33 @@ function App() {
       lastWorkspaceId.current = null;
     }
   }, [activeWorkspaceId, activeWorkspace, model, executeStartupCommands]);
+
+  // Process Pending Navigations (after model is loaded/ready)
+  useEffect(() => {
+    if (model && pendingNavigation.current) {
+        const { terminalId, command } = pendingNavigation.current;
+        pendingNavigation.current = null;
+
+        if (terminalId) {
+            // Select existing tab
+            model.doAction(Actions.selectTab(terminalId));
+        } else if (command) {
+            // Run command in new terminal
+            const newId = uuidv4();
+            model.doAction(Actions.addNode({
+                type: "tab",
+                name: "Command Terminal",
+                component: "terminal",
+                config: { id: newId }
+            }, "flexlayout-main-tabset", DockLocation.CENTER, -1));
+
+            // Wait for terminal to mount and send command
+            setTimeout(() => {
+                WriteTerminal(newId, command + '\r');
+            }, 500);
+        }
+    }
+  }, [model, activeWorkspaceId]);
 
   const saveLayout = useCallback(() => {
     if (model) {
@@ -192,6 +236,33 @@ function App() {
     }
   };
 
+  const handlePaletteSelect = (result: SearchResult) => {
+    if (result.type === 'workspace') {
+        setActiveWorkspace(result.id);
+    } else if (result.type === 'terminal') {
+        if (result.workspaceId === activeWorkspaceId) {
+            if (model && result.terminalId) model.doAction(Actions.selectTab(result.terminalId));
+        } else {
+            pendingNavigation.current = { terminalId: result.terminalId };
+            setActiveWorkspace(result.workspaceId);
+        }
+    } else if (result.type === 'command') {
+        if (result.workspaceId === activeWorkspaceId) {
+            const newId = uuidv4();
+            model?.doAction(Actions.addNode({
+                type: "tab",
+                name: "Command Terminal",
+                component: "terminal",
+                config: { id: newId }
+            }, "flexlayout-main-tabset", DockLocation.CENTER, -1));
+            setTimeout(() => WriteTerminal(newId, result.command + '\r'), 500);
+        } else {
+            pendingNavigation.current = { command: result.command };
+            setActiveWorkspace(result.workspaceId);
+        }
+    }
+  };
+
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
     window.addEventListener('click', handleClick);
@@ -200,7 +271,7 @@ function App() {
 
   return (
     <div data-theme={theme} style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' }}>
-      <Sidebar />
+      <Sidebar onSearchClick={() => setIsPaletteOpen(true)} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
         {activeWorkspace && model ? (
           <>
@@ -236,6 +307,13 @@ function App() {
             onClose={() => setContextMenu(null)}
         />
       )}
+
+      <CommandPalette 
+        isOpen={isPaletteOpen}
+        onClose={() => setIsPaletteOpen(false)}
+        onSelect={handlePaletteSelect}
+      />
+
       <GlobalModal />
     </div>
   );

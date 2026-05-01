@@ -28,6 +28,8 @@ interface WorkspaceState {
   importCommands: (sourceWorkspaceId: string, commandIds: string[]) => Promise<void>;
   removeCommand: (commandId: string) => Promise<void>;
   updateCommand: (id: string, name: string, cmdStr: string, isGlobal: boolean, isStartup: boolean) => Promise<void>;
+  
+  navigateAndRunCommand: (workspaceId: string, commandStr: string) => Promise<void>;
 }
 
 const getNewDefaultLayout = () => JSON.stringify({
@@ -331,5 +333,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (activeWs) {
         await SaveWorkspace(activeWs as any);
     }
+  },
+
+  navigateAndRunCommand: async (workspaceId, commandStr) => {
+    // This is a complex action that will be coordinated in App.tsx 
+    // because it needs access to the active flexlayout model.
+    // For now, we just switch the workspace.
+    set({ activeWorkspaceId: workspaceId });
   }
 }));
