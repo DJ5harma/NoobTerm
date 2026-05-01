@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { useThemeStore } from '../themeStore';
+import { useWorkspaceStore } from '../store';
 import { GetOrCreateTerminal, GetTerminalBuffer, WriteTerminal, ResizeTerminal } from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 
@@ -14,8 +15,11 @@ interface TerminalProps {
 
 const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isFocused, setIsFocused] = useState(false);
+  const terminalInstance = useRef<XTerm | null>(null);
   const { theme } = useThemeStore();
+  const { activeTerminalId, setActiveTerminal } = useWorkspaceStore();
+  
+  const isFocused = activeTerminalId === id;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -28,88 +32,71 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
       cursorBlink: true,
       cursorStyle: 'bar',
       fontSize: 14,
-      // High-quality monospaced font stack
       fontFamily: '"JetBrains Mono", "Cascadia Code", "Fira Code", Menlo, Monaco, "Courier New", monospace',
-      letterSpacing: 0,
-      lineHeight: 1.2,
       allowTransparency: true,
       convertEol: true,
       theme: getTerminalTheme(theme),
-      // @ts-ignore
-      allowProposedApi: true,
     });
 
     const fitAddon = new FitAddon();
     xterm.loadAddon(fitAddon);
+    terminalInstance.current = xterm;
 
     const init = async () => {
       try {
-        // 2. Open in DOM
+        // 2. Open in DOM (Ensures visible context)
         xterm.open(containerRef.current!);
         
-        // 3. FORCE WebGL for Razor-Sharp Rendering
+        // 3. Optional WebGL (Try to load if possible)
         try {
             const webgl = new WebglAddon();
             xterm.loadAddon(webgl);
-            // Fix for WebGL context loss on some systems
-            webgl.onContextLoss(() => {
-                webgl.dispose();
-            });
-        } catch(e) {
-            console.warn("WebGL not supported, falling back to standard renderer");
-        }
+        } catch(e) {}
 
-        // 4. Backend Connection
+        // 4. Backend Connection (Persistent Session)
         backendId = await GetOrCreateTerminal(id, cwd || '');
         if (!isMounted) return;
 
-        // 5. Restore Buffer
+        // 5. Restore History Buffer
         const buffer = await GetTerminalBuffer(backendId);
-        if (isMounted && buffer) xterm.write(buffer);
+        if (isMounted && buffer) {
+            xterm.write(buffer);
+        }
 
         // 6. I/O Plumbing
-        xterm.onData(data => WriteTerminal(backendId, data));
+        xterm.onData(data => {
+            if (isMounted) WriteTerminal(backendId, data);
+        });
         
         const outputHandler = (data: string) => {
             if (isMounted) xterm.write(data);
         };
         EventsOn(`terminal-output-${backendId}`, outputHandler);
 
-        // 7. Focus & Resize
+        // 7. Sizing & Focus
         // @ts-ignore
         if (typeof xterm.onFocus === 'function') {
              // @ts-ignore
-             xterm.onFocus(() => setIsFocused(true));
-        }
-        // @ts-ignore
-        if (typeof xterm.onBlur === 'function') {
-             // @ts-ignore
-             xterm.onBlur(() => setIsFocused(false));
+             xterm.onFocus(() => setActiveTerminal(id));
         }
 
         const resizeObserver = new ResizeObserver(() => {
-          if (isMounted && containerRef.current) {
-            // Minor delay to ensure container has finished reflowing
-            requestAnimationFrame(() => {
-              fitAddon.fit();
-              if (backendId) {
-                ResizeTerminal(backendId, xterm.cols, xterm.rows);
-              }
-            });
+          if (isMounted) {
+            fitAddon.fit();
+            ResizeTerminal(backendId, xterm.cols, xterm.rows);
           }
         });
         resizeObserver.observe(containerRef.current!);
 
-        // Initial fits
+        // Force fit
         fitAddon.fit();
-        setTimeout(() => fitAddon.fit(), 50);
         
         return () => {
           resizeObserver.disconnect();
           EventsOff(`terminal-output-${backendId}`);
         };
       } catch (err) {
-        xterm.write(`\r\n\x1b[31mError: ${err}\x1b[0m\r\n`);
+        xterm.write(`\r\n\x1b[31mError connecting to terminal: ${err}\x1b[0m\r\n`);
       }
     };
 
@@ -117,7 +104,7 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
 
     return () => {
       isMounted = false;
-      xterm.dispose();
+      xterm.dispose(); // Cleanup frontend only
       cleanupPromise.then(cleanup => cleanup && cleanup());
     };
   }, [id, theme]);
@@ -125,6 +112,11 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
   return (
     <div 
       className={`terminal-card ${isFocused ? 'focused' : ''}`}
+      onMouseDown={(e) => {
+          e.stopPropagation();
+          setActiveTerminal(id);
+          terminalInstance.current?.focus();
+      }}
       style={{ 
         width: '100%', 
         height: '100%', 
@@ -137,6 +129,7 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
       <div 
         ref={containerRef} 
         style={{ flex: 1, width: '100%', height: '100%', overflow: 'hidden' }} 
+        className="fade-in"
       />
     </div>
   );
@@ -165,40 +158,15 @@ function getTerminalTheme(theme: string) {
     };
 
     if (theme === 'pro') {
-        return {
-            ...common,
-            background: '#000000',
-            foreground: '#ffffff',
-            cursor: '#ffffff',
-            selectionBackground: 'rgba(255, 255, 255, 0.3)',
-        };
+        return { ...common, background: '#000000', foreground: '#ffffff', cursor: '#ffffff' };
     }
     if (theme === 'lightfun') {
-        return {
-            ...common,
-            background: '#ffffff',
-            foreground: '#243b53',
-            cursor: '#ff4785',
-            black: '#102a43',
-            white: '#f0f4f8',
-            selectionBackground: 'rgba(0, 0, 0, 0.1)',
-        };
+        return { ...common, background: '#ffffff', foreground: '#243b53', cursor: '#ff4785', selectionBackground: 'rgba(0, 0, 0, 0.1)' };
     }
     if (theme === 'joy') {
-        return {
-            ...common,
-            background: '#1e1e2e',
-            foreground: '#cdd6f4',
-            cursor: '#39ff14',
-            selectionBackground: 'rgba(203, 166, 247, 0.2)',
-        };
+        return { ...common, background: '#1e1e2e', foreground: '#cdd6f4', cursor: '#39ff14' };
     }
-    return {
-        ...common,
-        background: '#1a1a1a',
-        foreground: '#cccccc',
-        cursor: '#007acc',
-    };
+    return { ...common, background: '#1a1a1a', foreground: '#cccccc', cursor: '#007acc' };
 }
 
 export default Terminal;

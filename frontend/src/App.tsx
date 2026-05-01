@@ -6,8 +6,14 @@ import Terminal from './components/Terminal';
 import { useWorkspaceStore } from './store';
 import { useThemeStore } from './themeStore';
 import { CloseTerminal } from '../wailsjs/go/main/App';
-import { Plus } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+
+interface ContextMenu {
+  x: number;
+  y: number;
+  node: TabNode;
+}
 
 function App() {
   const store = useWorkspaceStore();
@@ -15,6 +21,8 @@ function App() {
   const { workspaces, activeWorkspaceId, fetchWorkspaces, updateActiveWorkspaceLayout } = store;
 
   const [model, setModel] = useState<Model | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   const lastWorkspaceId = useRef<string | null>(null);
 
@@ -57,7 +65,7 @@ function App() {
       if (node) {
         const config = node.getConfig();
         if (config && config.id) {
-          // Explicit cleanup
+          // Explicitly kill backend session when tab is deleted
           CloseTerminal(config.id);
         }
       }
@@ -107,6 +115,42 @@ function App() {
     }
   }, [addTerminalToTabset]);
 
+  const onContextMenu = useCallback((node: TabNode | TabSetNode | BorderNode, event: React.MouseEvent) => {
+    if (node instanceof TabNode) {
+        event.preventDefault();
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          node
+        });
+    }
+  }, []);
+
+  const handleRename = () => {
+    if (contextMenu && model) {
+      const newName = prompt("Rename tab:", contextMenu.node.getName());
+      if (newName) {
+        model.doAction(Actions.renameTab(contextMenu.node.getId(), newName));
+        saveLayout();
+      }
+    }
+    setContextMenu(null);
+  };
+
+  const handleDelete = () => {
+    if (contextMenu && model) {
+      model.doAction(Actions.deleteTab(contextMenu.node.getId()));
+      saveLayout();
+    }
+    setContextMenu(null);
+  };
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
+
   return (
     <div data-theme={theme} style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' }}>
       <Sidebar />
@@ -119,6 +163,7 @@ function App() {
               onModelChange={onModelChange}
               onAction={onAction}
               onRenderTabSet={onRenderTabSet}
+              onContextMenu={onContextMenu}
             />
           </div>
         ) : (
@@ -130,6 +175,44 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Custom Context Menu */}
+      {contextMenu && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            backgroundColor: 'var(--bg-sidebar)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding: '4px',
+            zIndex: 20000,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            minWidth: '150px'
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div 
+            onClick={handleRename}
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <Edit2 size={14} />
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>Rename</span>
+          </div>
+          <div 
+            onClick={handleDelete}
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px', color: '#ff4d4f' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <Trash2 size={14} />
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>Delete</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
