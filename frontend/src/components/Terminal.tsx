@@ -8,14 +8,21 @@ import { useWorkspaceStore } from '../store';
 import { GetOrCreateTerminal, GetTerminalBuffer, WriteTerminal, ResizeTerminal } from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 
+export interface TerminalStats {
+  cpu: number;
+  memory: number;
+  status: string;
+}
+
 interface TerminalProps {
   id: string; 
   cwd?: string;
   onTitleChange?: (title: string) => void;
   onRunningChange?: (isRunning: boolean) => void;
+  onStatsChange?: (stats: TerminalStats) => void;
 }
 
-const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningChange }) => {
+const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningChange, onStatsChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalInstance = useRef<XTerm | null>(null);
   const { theme } = useThemeStore();
@@ -76,9 +83,13 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
         const stateHandler = (isRunning: boolean) => {
             if (isMounted && onRunningChange) onRunningChange(isRunning);
         };
+        const statsHandler = (stats: TerminalStats) => {
+            if (isMounted && onStatsChange) onStatsChange(stats);
+        };
 
         EventsOn(`terminal-output-${backendId}`, outputHandler);
         EventsOn(`terminal-state-${backendId}`, stateHandler);
+        EventsOn(`terminal-stats-${backendId}`, statsHandler);
 
         // 7. Sizing & Focus
         // @ts-ignore
@@ -110,6 +121,7 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
             isMounted = false;
             EventsOff(`terminal-output-${backendId}`);
             EventsOff(`terminal-state-${backendId}`);
+            EventsOff(`terminal-stats-${backendId}`);
             resizeObserver.disconnect();
             xterm.dispose();
         };

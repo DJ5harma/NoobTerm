@@ -10,10 +10,17 @@ import (
 	"time"
 
 	"github.com/aymanbagabas/go-pty"
+	"github.com/shirou/gopsutil/v3/process"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 const maxBufferBytes = 100 * 1024 
+
+type TerminalStats struct {
+	CPU    float64 `json:"cpu"`
+	Memory uint64  `json:"memory"`
+	Status string  `json:"status"`
+}
 
 type Session struct {
 	ID        string
@@ -87,8 +94,66 @@ func (m *Manager) Create(id, cwd string) (string, error) {
 
 	m.sessions[id] = session
 	go m.readOutput(session)
+	go m.monitorStats(session)
 
 	return id, nil
+}
+
+func (m *Manager) monitorStats(session *Session) {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-session.Quit:
+			return
+		case <-ticker.C:
+			if session.Cmd.Process == nil {
+				continue
+			}
+
+			stats := TerminalStats{
+				Status: "running",
+			}
+
+			// Try to get process info
+			p, err := process.NewProcess(int32(session.Cmd.Process.Pid))
+			if err != nil {
+				stats.Status = "crashed"
+				wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, stats)
+				return
+			}
+
+			// Check if shell exited
+			if ok, _ := p.IsRunning(); !ok {
+				stats.Status = "exited"
+				wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, stats)
+				return
+			}
+
+			// Get CPU and Memory
+			cpu, _ := p.CPUPercent()
+			memInfo, _ := p.MemoryInfo()
+
+			stats.CPU = cpu
+			if memInfo != nil {
+				stats.Memory = memInfo.RSS
+			}
+
+			// Also sum up children resources
+			children, _ := p.Children()
+			for _, child := range children {
+				childCPU, _ := child.CPUPercent()
+				childMem, _ := child.MemoryInfo()
+				stats.CPU += childCPU
+				if childMem != nil {
+					stats.Memory += childMem.RSS
+				}
+			}
+
+			wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, stats)
+		}
+	}
 }
 
 func (m *Manager) readOutput(session *Session) {
