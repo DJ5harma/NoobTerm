@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkspaceStore } from '../store';
 import { useThemeStore, ThemeType } from '../themeStore';
-import { Folder, Plus, Trash2, Command, Settings, Palette, Check } from 'lucide-react';
+import { Folder, Plus, Trash2, Command, Palette, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
 
 const Sidebar: React.FC = () => {
@@ -16,6 +16,7 @@ const Sidebar: React.FC = () => {
 
   const [hoveredWs, setHoveredWs] = useState<string | null>(null);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleCreateWorkspace = async () => {
     if (!createWorkspace) return;
@@ -40,36 +41,69 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <div className="sidebar" style={{ 
-      width: '260px', 
+    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`} style={{ 
+      width: isCollapsed ? '72px' : '260px', 
       backgroundColor: 'var(--bg-sidebar)', 
       color: 'var(--text-main)',
       display: 'flex',
       flexDirection: 'column',
       borderRight: '1px solid var(--border)',
       userSelect: 'none',
-      transition: 'all 0.3s ease'
+      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      position: 'relative'
     }}>
+      {/* Collapse Toggle */}
+      <div 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        style={{
+            position: 'absolute',
+            right: '-12px',
+            top: '20px',
+            width: '24px',
+            height: '24px',
+            backgroundColor: 'var(--bg-sidebar)',
+            border: '1px solid var(--border)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 100,
+            color: 'var(--accent)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+        }}
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </div>
+
       {/* Sidebar Header */}
       <div style={{ 
-        padding: '20px', 
+        padding: isCollapsed ? '20px 0' : '20px', 
         display: 'flex', 
-        justifyContent: 'space-between', 
+        justifyContent: isCollapsed ? 'center' : 'space-between', 
         alignItems: 'center',
-        borderBottom: '1px solid var(--border)'
+        borderBottom: '1px solid var(--border)',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap'
       }}>
-        <span style={{ 
+        {!isCollapsed && <span style={{ 
           fontWeight: 900, 
           fontSize: '14px', 
           letterSpacing: '1px',
           textTransform: 'uppercase',
           color: 'var(--text-bright)'
-        }}>Termspace</span>
-        <Plus size={20} strokeWidth={3} style={{ cursor: 'pointer', color: 'var(--accent)' }} onClick={handleCreateWorkspace} />
+        }}>Termspace</span>}
+        <div onClick={handleCreateWorkspace} style={{ cursor: 'pointer' }}>
+            <Plus 
+                size={20} 
+                strokeWidth={3} 
+                style={{ color: 'var(--accent)' }} 
+            />
+        </div>
       </div>
 
       {/* Workspace List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 10px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isCollapsed ? '16px 8px' : '16px 10px' }}>
         {workspaces.map(ws => (
           <div 
             key={ws.id} 
@@ -77,22 +111,26 @@ const Sidebar: React.FC = () => {
             onClick={() => setActiveWorkspace && setActiveWorkspace(ws.id)}
             onMouseEnter={() => setHoveredWs(ws.id)}
             onMouseLeave={() => setHoveredWs(null)}
+            title={isCollapsed ? ws.name : ''}
             style={{ 
-              padding: '14px 16px', 
+              padding: isCollapsed ? '12px 0' : '14px 16px', 
               margin: '6px 0',
               borderRadius: 'var(--radius)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              position: 'relative'
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
             <Folder size={20} style={{ 
-              marginRight: '14px', 
-              color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-muted)'
+              marginRight: isCollapsed ? '0' : '14px', 
+              color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-muted)',
+              flexShrink: 0
             }} />
-            <span style={{ 
+            {!isCollapsed && <span style={{ 
               flex: 1, 
               overflow: 'hidden', 
               textOverflow: 'ellipsis', 
@@ -100,9 +138,20 @@ const Sidebar: React.FC = () => {
               fontSize: '14px',
               fontWeight: activeWorkspaceId === ws.id ? 800 : 500,
               color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-main)'
-            }}>{ws.name}</span>
+            }}>{ws.name}</span>}
             
-            {(activeWorkspaceId === ws.id || hoveredWs === ws.id) && (
+            {!isCollapsed && activeWorkspaceId === ws.id && (
+                <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--accent)',
+                    marginLeft: '8px',
+                    boxShadow: '0 0 10px var(--accent)'
+                }} />
+            )}
+            
+            {!isCollapsed && (activeWorkspaceId === ws.id || hoveredWs === ws.id) && (
               <Trash2 
                 size={14} 
                 style={{ 
@@ -128,13 +177,16 @@ const Sidebar: React.FC = () => {
         borderTop: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px'
+        gap: '4px',
+        alignItems: isCollapsed ? 'center' : 'stretch'
       }}>
         <div 
           onClick={() => setShowThemeModal(true)}
+          title={isCollapsed ? 'Themes' : ''}
           style={{ 
             display: 'flex', 
             alignItems: 'center', 
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
             padding: '12px',
             borderRadius: 'var(--radius)',
             fontSize: '14px', 
@@ -146,8 +198,8 @@ const Sidebar: React.FC = () => {
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
         >
-          <Palette size={18} style={{ marginRight: '12px', color: 'var(--accent)' }} />
-          <span>Themes</span>
+          <Palette size={18} style={{ marginRight: isCollapsed ? '0' : '12px', color: 'var(--accent)', flexShrink: 0 }} />
+          {!isCollapsed && <span>Themes</span>}
         </div>
       </div>
 
