@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useWorkspaceStore, Workspace } from '../store';
 import { useThemeStore, ThemeType } from '../themeStore';
 import { useModalStore } from '../modalStore';
-import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search } from 'lucide-react';
+import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 
 interface ContextMenu {
   x: number;
@@ -30,8 +31,25 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [gitBranches, setGitBranches] = useState<Record<string, string>>({});
 
   const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
+
+  // Listen for Git branch updates
+  useEffect(() => {
+    const handlers: (() => void)[] = [];
+
+    workspaces.forEach(ws => {
+        const eventName = `workspace-git-${ws.id}`;
+        const handler = (branch: string) => {
+            setGitBranches(prev => ({ ...prev, [ws.id]: branch }));
+        };
+        EventsOn(eventName, handler);
+        handlers.push(() => EventsOff(eventName));
+    });
+
+    return () => handlers.forEach(h => h());
+  }, [workspaces]);
 
   const handleCreateWorkspace = async () => {
     if (!createWorkspace) return;
@@ -210,24 +228,34 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
               color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-muted)',
               flexShrink: 0
             }} />
-            {!isCollapsed && <span style={{ 
-              flex: 1, 
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis', 
-              whiteSpace: 'nowrap',
-              fontSize: '14px',
-              fontWeight: activeWorkspaceId === ws.id ? 800 : 500,
-              color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-main)'
-            }}>{ws.name}</span>}
+            {!isCollapsed && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <span style={{ 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis', 
+                        whiteSpace: 'nowrap',
+                        fontSize: '14px',
+                        fontWeight: activeWorkspaceId === ws.id ? 800 : 500,
+                        color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-main)'
+                    }}>{ws.name}</span>
+                    {gitBranches[ws.id] && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.5, marginTop: '2px' }}>
+                            <GitBranch size={10} />
+                            <span style={{ fontSize: '11px', fontWeight: 600 }}>{gitBranches[ws.id]}</span>
+                        </div>
+                    )}
+                </div>
+            )}
             
             {!isCollapsed && activeWorkspaceId === ws.id && (
                 <div style={{
-                    width: '8px',
-                    height: '8px',
+                    width: '6px',
+                    height: '6px',
                     borderRadius: '50%',
                     backgroundColor: 'var(--accent)',
                     marginLeft: '8px',
-                    boxShadow: '0 0 10px var(--accent)'
+                    boxShadow: '0 0 10px var(--accent)',
+                    flexShrink: 0
                 }} />
             )}
             
@@ -237,7 +265,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
                 style={{ 
                   cursor: 'pointer', 
                   color: '#ff4d4f', 
-                  opacity: hoveredWs === ws.id ? 1 : 0
+                  opacity: hoveredWs === ws.id ? 1 : 0,
+                  marginLeft: '8px'
                 }} 
                 onClick={(e) => {
                   e.stopPropagation();

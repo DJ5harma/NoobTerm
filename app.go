@@ -34,6 +34,9 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.terminalManager.SetContext(ctx)
+	if a.workspaceManager != nil {
+		a.workspaceManager.SetContext(ctx)
+	}
 }
 
 // SelectDirectory opens a directory dialog and returns the selected path
