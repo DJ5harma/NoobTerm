@@ -153,13 +153,12 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
   return (
     <div 
         onMouseDown={() => setActiveTerminal(id)}
+        className={`terminal-container ${isFocused ? 'focused' : ''}`}
         style={{ 
             width: '100%', 
             height: '100%', 
-            backgroundColor: getTerminalTheme(theme).background,
-            border: `3px solid ${isFocused ? 'var(--accent)' : 'transparent'}`,
-            boxSizing: 'border-box',
-            transition: 'border-color 0.15s ease'
+            backgroundColor: 'var(--bg-main)',
+            boxSizing: 'border-box'
         }}
     >
         <div ref={containerRef} style={{ width: '100%', height: '100%', padding: '10px', boxSizing: 'border-box' }} />
@@ -170,14 +169,20 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
 function getTerminalTheme(theme: string) {
     const common = {
         fontFamily: '"JetBrains Mono", monospace',
+        background: 'transparent', // Let container handle bg
     };
-    if (theme === 'pro') {
-        return { ...common, background: '#0a0a0a', foreground: '#ffffff', cursor: '#ffffff' };
-    }
-    if (theme === 'joy') {
-        return { ...common, background: '#1e1e2e', foreground: '#cdd6f4', cursor: '#39ff14' };
-    }
-    return { ...common, background: '#1a1a1a', foreground: '#cccccc', cursor: '#007acc' };
+
+    // Use CSS variables for colors to ensure consistency
+    const style = getComputedStyle(document.documentElement);
+    const foreground = style.getPropertyValue('--text-bright').trim() || '#ffffff';
+    const cursor = style.getPropertyValue('--accent').trim() || '#ffffff';
+
+    return { 
+        ...common, 
+        foreground, 
+        cursor,
+        selectionBackground: 'var(--accent-muted)'
+    };
 }
 
 export default Terminal;

@@ -94,38 +94,16 @@ const GlobalModal: React.FC = () => {
           {type !== 'alert' && (
             <button 
               onClick={onCancel}
-              style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: 'transparent',
-                border: '2px solid var(--border)',
-                borderRadius: 'var(--radius)',
-                color: 'var(--text-main)',
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+              className="btn btn-secondary"
+              style={{ flex: 1 }}
             >
               {cancelLabel}
             </button>
           )}
           <button 
             onClick={handleConfirm}
-            style={{
-              flex: 1,
-              padding: '12px',
-              backgroundColor: 'var(--accent)',
-              border: 'none',
-              borderRadius: 'var(--radius)',
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-            }}
+            className="btn btn-primary"
+            style={{ flex: 1, border: 'none' }}
           >
             {confirmLabel}
           </button>

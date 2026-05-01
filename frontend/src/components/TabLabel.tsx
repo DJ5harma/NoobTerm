@@ -36,23 +36,24 @@ const TabLabel: React.FC<TabLabelProps> = ({ name, isRunning, stats }) => {
                     alignItems: 'center', 
                     gap: '6px', 
                     fontSize: '10px', 
-                    opacity: 0.6,
+                    color: 'var(--text-muted)',
                     fontFamily: 'var(--font-mono)',
-                    backgroundColor: 'rgba(0,0,0,0.2)',
-                    padding: '1px 4px',
-                    borderRadius: '3px',
-                    flexShrink: 0
+                    backgroundColor: 'var(--bg-active)',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    flexShrink: 0,
+                    border: '1px solid var(--border)'
                 }}>
-                    <span style={{ color: stats.cpu > 50 ? '#ff4d4f' : 'inherit' }}>
+                    <span style={{ color: stats.cpu > 50 ? 'var(--status-err)' : 'var(--text-main)' }}>
                         {stats.cpu.toFixed(1)}%
                     </span>
                     <div style={{ width: '1px', height: '8px', backgroundColor: 'var(--border)' }} />
-                    <span>{formatBytes(stats.memory)}</span>
+                    <span style={{ color: 'var(--text-main)' }}>{formatBytes(stats.memory)}</span>
                 </div>
             )}
 
             {stats?.status === 'crashed' && (
-                <div title="Process Crashed" style={{ color: '#ff4d4f', fontWeight: 900, fontSize: '12px' }}>!</div>
+                <div title="Process Crashed" style={{ color: 'var(--status-err)', fontWeight: 900, fontSize: '12px' }}>!</div>
             )}
         </div>
     );

@@ -180,10 +180,10 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSele
                                 }}
                             >
                                 <div style={{ 
-                                    width: '32px', height: '32px', borderRadius: '8px', 
+                                    width: '32px', height: '32px', borderRadius: 'var(--radius)', 
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    backgroundColor: item.type === 'workspace' ? 'rgba(0,122,255,0.1)' : item.type === 'terminal' ? 'rgba(57,255,20,0.1)' : 'rgba(255,170,0,0.1)',
-                                    color: item.type === 'workspace' ? '#007aff' : item.type === 'terminal' ? '#39ff14' : '#ffaa00'
+                                    backgroundColor: 'var(--accent-muted)',
+                                    color: 'var(--accent)'
                                 }}>
                                     {item.type === 'workspace' && <Folder size={18} />}
                                     {item.type === 'terminal' && <Terminal size={18} />}

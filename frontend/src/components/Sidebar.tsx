@@ -137,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
             cursor: 'pointer',
             zIndex: 100,
             color: 'var(--accent)',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
         }}
       >
         {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -155,12 +155,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
       }}>
         {!isCollapsed ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src={Logo} style={{ width: '56px', height: '56px', borderRadius: '6px' }} alt="NoobTerm" />
+                <img src={Logo} style={{ width: '40px', height: '40px', borderRadius: '6px' }} alt="NoobTerm" />
                 <span style={{ 
-                    fontWeight: 900, 
-                    fontSize: '14px', 
-                    letterSpacing: '1px',
-                    textTransform: 'uppercase',
+                    fontWeight: 800, 
+                    fontSize: '15px', 
+                    letterSpacing: '0.5px',
                     color: 'var(--text-bright)'
                 }}>NoobTerm</span>
             </div>
@@ -169,12 +168,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
         )}
         {!isCollapsed && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div onClick={handleCreateWorkspace} style={{ cursor: 'pointer' }} title="New Workspace">
-                    <Plus 
-                        size={20} 
-                        strokeWidth={3} 
-                        style={{ color: 'var(--accent)' }} 
-                    />
+                <div onClick={handleCreateWorkspace} style={{ cursor: 'pointer', color: 'var(--accent)' }} title="New Workspace">
+                    <Plus size={20} strokeWidth={2.5} />
                 </div>
             </div>
         )}
@@ -188,7 +183,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
             style={{
                 padding: isCollapsed ? '12px 0' : '10px 14px',
                 marginBottom: '20px',
-                backgroundColor: 'var(--bg-active)',
+                backgroundColor: 'var(--bg-main)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius)',
                 cursor: 'pointer',
@@ -196,8 +191,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
                 alignItems: 'center',
                 justifyContent: isCollapsed ? 'center' : 'flex-start',
                 gap: '12px',
-                transition: 'all 0.2s',
-                opacity: 0.8
+                transition: 'all 0.2s'
             }}
             onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
@@ -206,7 +200,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
             {!isCollapsed && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, alignItems: 'center' }}>
                     <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Search...</span>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', backgroundColor: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px' }}>Ctrl P</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', backgroundColor: 'var(--bg-active)', padding: '2px 6px', borderRadius: '4px' }}>Ctrl P</span>
                 </div>
             )}
         </div>
@@ -220,69 +214,71 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
             onMouseEnter={() => setHoveredWs(ws.id)}
             onMouseLeave={() => setHoveredWs(null)}
             title={isCollapsed ? ws.name : ''}
-            style={{ 
-              padding: isCollapsed ? '12px 0' : '14px 16px', 
-              margin: '6px 0',
-              borderRadius: 'var(--radius)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: isCollapsed ? 'center' : 'flex-start',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
           >
             <Folder size={20} style={{ 
               marginRight: isCollapsed ? '0' : '14px', 
-              color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-muted)',
+              color: activeWorkspaceId === ws.id ? 'var(--accent)' : 'var(--text-muted)',
               flexShrink: 0
             }} />
             {!isCollapsed && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden', gap: '8px' }}>
                     <span style={{ 
                         overflow: 'hidden', 
                         textOverflow: 'ellipsis', 
                         whiteSpace: 'nowrap',
-                        fontSize: '14px',
-                        fontWeight: activeWorkspaceId === ws.id ? 800 : 500,
-                        color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-main)'
+                        fontSize: '13px',
+                        fontWeight: activeWorkspaceId === ws.id ? 700 : 500,
+                        color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-main)',
+                        flex: 1
                     }}>{ws.name}</span>
-                    {gitBranches[ws.id] && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.5, marginTop: '2px' }}>
-                            <GitBranch size={10} />
-                            <span style={{ fontSize: '11px', fontWeight: 600 }}>{gitBranches[ws.id]}</span>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        {gitBranches[ws.id] && (
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '4px', 
+                                color: 'var(--accent)',
+                                backgroundColor: 'var(--accent-muted)',
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                border: '1px solid var(--accent-muted)'
+                            }}>
+                                <GitBranch size={10} />
+                                <span style={{ fontSize: '10px', fontWeight: 800 }}>{gitBranches[ws.id]}</span>
+                            </div>
+                        )}
+
+                        <div style={{ width: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                            {hoveredWs === ws.id ? (
+                                <Trash2 
+                                    size={14} 
+                                    style={{ 
+                                        cursor: 'pointer', 
+                                        color: 'var(--status-err)',
+                                        transition: 'transform 0.1s'
+                                    }} 
+                                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteWorkspace(ws);
+                                    }} 
+                                />
+                            ) : (
+                                activeWorkspaceId === ws.id && (
+                                    <div style={{
+                                        width: '6px',
+                                        height: '6px',
+                                        borderRadius: '50%',
+                                        backgroundColor: 'var(--accent)',
+                                        boxShadow: '0 0 10px var(--accent)'
+                                    }} />
+                                )
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
-            )}
-            
-            {!isCollapsed && activeWorkspaceId === ws.id && (
-                <div style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--accent)',
-                    marginLeft: '8px',
-                    boxShadow: '0 0 10px var(--accent)',
-                    flexShrink: 0
-                }} />
-            )}
-            
-            {!isCollapsed && (activeWorkspaceId === ws.id || hoveredWs === ws.id) && (
-              <Trash2 
-                size={14} 
-                style={{ 
-                  cursor: 'pointer', 
-                  color: '#ff4d4f', 
-                  opacity: hoveredWs === ws.id ? 1 : 0,
-                  marginLeft: '8px'
-                }} 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteWorkspace(ws);
-                }} 
-              />
             )}
           </div>
         ))}
@@ -310,7 +306,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
             color: 'var(--text-main)', 
             cursor: 'pointer',
             transition: 'background 0.2s',
-            fontWeight: 700
+            fontWeight: 600
           }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -324,7 +320,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
       {showThemeModal && (
         <div className="modal-overlay" onClick={() => setShowThemeModal(false)}>
           <div className="modal-content fade-in" onClick={e => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0, color: 'var(--text-bright)', textAlign: 'center', marginBottom: '25px', fontSize: '24px' }}>Choose Your Vibe</h2>
+            <h2 className="modal-title" style={{ textAlign: 'center' }}>Choose Your Vibe</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {themes.map(t => (
                 <div 
@@ -334,12 +330,25 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
                     setTheme(t.id);
                     setShowThemeModal(false);
                   }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: 'var(--radius)',
+                    cursor: 'pointer',
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.2s',
+                    backgroundColor: theme === t.id ? 'var(--bg-active)' : 'transparent'
+                  }}
+                  onMouseEnter={e => { if(theme !== t.id) e.currentTarget.style.backgroundColor = 'var(--bg-active)' }}
+                  onMouseLeave={e => { if(theme !== t.id) e.currentTarget.style.backgroundColor = 'transparent' }}
                 >
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-bright)' }}>{t.label}</span>
+                    <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-bright)' }}>{t.label}</span>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t.desc}</span>
                   </div>
-                  {theme === t.id && <Check size={20} color="var(--accent)" />}
+                  {theme === t.id && <Check size={18} color="var(--accent)" />}
                 </div>
               ))}
             </div>
@@ -354,10 +363,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
             position: 'fixed',
             top: contextMenu.y,
             left: contextMenu.x,
-            backgroundColor: 'var(--bg-sidebar)',
+            backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
-            padding: '4px',
+            padding: '6px',
             zIndex: 20000,
             boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
             minWidth: '180px'
@@ -366,19 +375,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
         >
           <div 
             onClick={() => handleChangeDirectory(contextMenu.workspace.id)}
-            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px' }}
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: 'var(--radius)' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
           >
-            <Edit3 size={14} />
-            <span style={{ fontSize: '13px', fontWeight: 600 }}>Change Directory</span>
+            <Edit3 size={14} color="var(--text-main)" />
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>Change Directory</span>
           </div>
           <div 
             onClick={() => {
                 handleDeleteWorkspace(contextMenu.workspace);
                 setContextMenu(null);
             }}
-            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px', color: '#ff4d4f' }}
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: 'var(--radius)', color: 'var(--status-err)' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
           >
