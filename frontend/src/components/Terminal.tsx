@@ -11,9 +11,10 @@ import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 interface TerminalProps {
   id: string; 
   cwd?: string;
+  onTitleChange?: (title: string) => void;
 }
 
-const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
+const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalInstance = useRef<XTerm | null>(null);
   const { theme } = useThemeStore();
@@ -87,6 +88,17 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
           }
         });
         resizeObserver.observe(containerRef.current!);
+
+        // 8. Handle dynamic title changes
+        // @ts-ignore
+        if (typeof xterm.onTitleChange === 'function') {
+            // @ts-ignore
+            xterm.onTitleChange((title: string) => {
+                if (onTitleChange && title.trim().length > 0) {
+                    onTitleChange(title);
+                }
+            });
+        }
 
         // Force fit
         fitAddon.fit();

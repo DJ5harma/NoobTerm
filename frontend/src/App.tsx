@@ -77,7 +77,34 @@ function App() {
     const component = node.getComponent();
     const config = node.getConfig();
     if (component === "terminal") {
-      return <Terminal id={config.id} cwd={activeWorkspace?.path} />;
+      return (
+        <Terminal 
+            id={config.id} 
+            cwd={activeWorkspace?.path} 
+            onTitleChange={(title) => {
+                // 1. Clean up common shell suffixes
+                let cleanTitle = title.trim()
+                    .replace(/ - powershell/gi, "")
+                    .replace(/ - cmd/gi, "")
+                    .replace(/ - bash/gi, "")
+                    .replace(/ - zsh/gi, "")
+                    .replace(/Administrator: /gi, "");
+                
+                // 2. Extract only the last folder name if it's a path
+                // Handles both Windows (\) and Unix (/) paths
+                const parts = cleanTitle.split(/[\\/]/);
+                const lastPart = parts[parts.length - 1];
+                
+                if (lastPart && lastPart.length > 0) {
+                    model?.doAction(Actions.renameTab(node.getId(), lastPart));
+                    saveLayout();
+                } else if (cleanTitle.length > 0) {
+                    model?.doAction(Actions.renameTab(node.getId(), cleanTitle));
+                    saveLayout();
+                }
+            }}
+        />
+      );
     }
     return <div>Unknown component</div>;
   };
