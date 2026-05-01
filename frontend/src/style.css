@@ -1,43 +1,118 @@
+:root {
+  --bg-main: #1a1b26;
+  --bg-sidebar: #24283b;
+  --bg-header: #2f354b;
+  
+  --accent-neon: #7aa2f7;
+  --accent-pink: #bb9af7;
+  --accent-cyan: #7dcfff;
+  --accent-yellow: #e0af68;
+  --accent-green: #9ece6a;
+  
+  --text-main: #a9b1d6;
+  --text-bright: #c0caf5;
+  
+  --border-radius-lg: 16px;
+  --border-radius-md: 12px;
+  --border-radius-sm: 8px;
+  
+  --font-sans: 'Comic Sans MS', 'Quicksand', 'Inter', sans-serif;
+  --font-mono: 'Fira Code', 'JetBrains Mono', monospace;
+}
+
 html, body, #root {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #1e1e1e;
-  color: #fff;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-sans);
   overflow: hidden;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* Playful Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #252526;
+  background: var(--bg-sidebar);
+  border-radius: var(--border-radius-lg);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: var(--accent-pink);
+  border: 3px solid var(--bg-sidebar);
+  border-radius: var(--border-radius-lg);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #4f4f4f;
+/* FlexLayout "Fun" Overrides */
+.flexlayout__layout {
+  background-color: var(--bg-main);
+  padding: 8px;
+}
+
+.flexlayout__tabset_header {
+  background-color: var(--bg-header) !important;
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0 !important;
+  border-bottom: 2px solid var(--bg-main) !important;
+}
+
+.flexlayout__tabset {
+  background-color: transparent !important;
+}
+
+.flexlayout__tab_button {
+  background-color: transparent !important;
+  color: var(--text-main) !important;
+  border-radius: var(--border-radius-sm) !important;
+  margin: 4px !important;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.flexlayout__tab_button--selected {
+  background-color: var(--accent-neon) !important;
+  color: #fff !important;
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.flexlayout__splitter {
+  background-color: transparent !important;
+}
+.flexlayout__splitter:hover {
+  background-color: var(--accent-pink) !important;
+  border-radius: 4px;
+}
+
+/* THE MEGA GLOW FOR FOCUSED TERMINAL */
+.terminal-card {
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-sidebar);
+  border-radius: var(--border-radius-md);
+  padding: 12px;
+  border: 4px solid transparent;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+.terminal-card.focused {
+  border-color: var(--accent-pink) !important;
+  box-shadow: 0 0 30px rgba(187, 154, 247, 0.6) !important;
+  transform: scale(0.99);
+  z-index: 100;
+}
+
+.fade-in {
+  animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -10,7 +10,6 @@ interface TerminalProps {
   cwd?: string;
 }
 
-// Global cache to keep terminal sessions alive during tab dragging/reordering
 const terminalCache: Record<string, {
   backendId: string;
   xterm: XTerm;
@@ -30,6 +29,7 @@ export const closeTerminalSession = (id: string) => {
 const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const isInitialized = useRef(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -42,10 +42,13 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
         const term = new XTerm({
           cursorBlink: true,
           fontSize: 14,
-          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+          fontFamily: 'var(--font-mono)',
           theme: {
-            background: '#1e1e1e',
+            background: '#1a1b26',
+            foreground: '#a9b1d6',
+            cursor: '#7aa2f7',
           },
+          allowTransparency: true,
         });
 
         const fitAddon = new FitAddon();
@@ -53,48 +56,50 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
 
         try {
           const backendId = await CreateTerminal(cwd || '');
-          
-          term.onData((data) => {
-            WriteTerminal(backendId, data);
-          });
-
-          EventsOn(`terminal-output-${backendId}`, (data: string) => {
-            term.write(data);
-          });
-
+          term.onData((data) => WriteTerminal(backendId, data));
+          EventsOn(`terminal-output-${backendId}`, (data: string) => term.write(data));
           cache = { backendId, xterm: term, fitAddon };
           terminalCache[id] = cache;
         } catch (err) {
-          term.write(`\r\n\x1b[31mError creating terminal: ${err}\x1b[0m\r\n`);
+          term.write(`Error: ${err}`);
           return;
         }
       }
 
       cache.xterm.open(terminalRef.current!);
-      cache.fitAddon.fit();
-      ResizeTerminal(cache.backendId, cache.xterm.cols, cache.xterm.rows);
-
-      const handleResize = () => {
-        if (cache) {
-          cache.fitAddon.fit();
-          ResizeTerminal(cache.backendId, cache.xterm.cols, cache.xterm.rows);
+      
+      // Use standard JS focus/blur on the container to detect activity
+      const container = terminalRef.current;
+      if (container) {
+        const handleFocusIn = () => setIsFocused(true);
+        const handleFocusOut = () => setIsFocused(false);
+        container.addEventListener('focusin', handleFocusIn);
+        container.addEventListener('focusout', handleFocusOut);
+        
+        // Also listen to xterm's internal textarea
+        const textarea = container.querySelector('.xterm-helper-textarea');
+        if (textarea) {
+            textarea.addEventListener('focus', handleFocusIn);
+            textarea.addEventListener('blur', handleFocusOut);
         }
-      };
+      }
 
-      window.addEventListener('resize', handleResize);
+      setTimeout(() => {
+        cache.fitAddon.fit();
+        ResizeTerminal(cache.backendId, cache.xterm.cols, cache.xterm.rows);
+      }, 50);
+
       isInitialized.current = true;
-
-      return () => {
-        window.removeEventListener('resize', handleResize);
-        // We don't close the terminal here because we want to keep it alive in the cache
-        // for when the tab is moved or re-selected.
-      };
     };
 
     setupTerminal();
   }, [id, cwd]);
 
-  return <div ref={terminalRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />;
+  return (
+    <div className={`terminal-card ${isFocused ? 'focused' : ''}`}>
+      <div ref={terminalRef} style={{ width: '100%', height: '100%' }} className="fade-in" tabIndex={-1} />
+    </div>
+  );
 };
 
 export default Terminal;
