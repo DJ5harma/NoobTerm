@@ -20,12 +20,13 @@ interface WorkspaceState {
   deleteWorkspace: (id: string) => Promise<void>;
   
   updateActiveWorkspaceLayout: (layoutJson: string) => void;
-  addCommandToActiveWorkspace: (name: string, cmdStr: string, isGlobal: boolean) => Promise<void>;
+  addCommandToActiveWorkspace: (name: string, cmdStr: string, isGlobal: boolean, isStartup: boolean) => Promise<void>;
   updateWorkspacePath: (id: string, newPath: string) => Promise<void>;
   toggleCommandGlobal: (commandId: string) => Promise<void>;
+  toggleCommandStartup: (commandId: string) => Promise<void>;
   importCommands: (sourceWorkspaceId: string, commandIds: string[]) => Promise<void>;
   removeCommand: (commandId: string) => Promise<void>;
-  updateCommand: (id: string, name: string, cmdStr: string, isGlobal: boolean) => Promise<void>;
+  updateCommand: (id: string, name: string, cmdStr: string, isGlobal: boolean, isStartup: boolean) => Promise<void>;
 }
 
 const getNewDefaultLayout = () => JSON.stringify({
@@ -155,7 +156,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
   },
 
-  addCommandToActiveWorkspace: async (name, cmdStr, isGlobal) => {
+  addCommandToActiveWorkspace: async (name, cmdStr, isGlobal, isStartup) => {
     const { activeWorkspaceId } = get();
     if (!activeWorkspaceId) return;
 
@@ -167,6 +168,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       name,
       command: cmdStr,
       isGlobal,
+      isStartup,
       variables: []
     };
 
@@ -198,7 +200,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
   },
 
-  updateCommand: async (id, name, cmdStr, isGlobal) => {
+  updateCommand: async (id, name, cmdStr, isGlobal, isStartup) => {
     const { workspaces, activeWorkspaceId } = get();
     if (!activeWorkspaceId) return;
 
@@ -207,7 +209,31 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         return {
           ...ws,
           commands: (ws.commands || []).map(cmd => 
-            cmd.id === id ? { ...cmd, name, command: cmdStr, isGlobal } : cmd
+            cmd.id === id ? { ...cmd, name, command: cmdStr, isGlobal, isStartup } : cmd
+          )
+        };
+      }
+      return ws;
+    }) as Workspace[];
+
+    set({ workspaces: updatedWorkspaces });
+    
+    const activeWs = updatedWorkspaces.find(w => w.id === activeWorkspaceId);
+    if (activeWs) {
+        await SaveWorkspace(activeWs as any);
+    }
+  },
+
+  toggleCommandStartup: async (commandId) => {
+    const { workspaces, activeWorkspaceId } = get();
+    if (!activeWorkspaceId) return;
+
+    const updatedWorkspaces = workspaces.map(ws => {
+      if (ws.id === activeWorkspaceId) {
+        return {
+          ...ws,
+          commands: (ws.commands || []).map(cmd => 
+            cmd.id === commandId ? { ...cmd, isStartup: !cmd.isStartup } : cmd
           )
         };
       }

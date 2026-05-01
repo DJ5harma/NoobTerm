@@ -28,9 +28,68 @@ function App() {
   
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   const lastWorkspaceId = useRef<string | null>(null);
+  const startupsRunFor = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     fetchWorkspaces();
+  }, []);
+
+  const executeStartupCommands = useCallback(async (workspace: any, currentModel: Model) => {
+    const startupCommands = (workspace.commands || []).filter((cmd: any) => cmd.isStartup);
+    if (startupCommands.length === 0) return;
+
+    // Wait for the UI to settle
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const getTerminals = () => {
+        const nodes: TabNode[] = [];
+        currentModel.visitNodes((node) => {
+            if (node.getType() === 'tab' && (node as TabNode).getComponent() === 'terminal') {
+                nodes.push(node as TabNode);
+            }
+        });
+        return nodes;
+    };
+
+    let terminals = getTerminals();
+
+    // Ensure we have enough terminals
+    if (startupCommands.length > terminals.length) {
+        const needed = startupCommands.length - terminals.length;
+        
+        // Find a tabset to add to
+        let targetTabset: string | null = null;
+        currentModel.visitNodes((node) => {
+            if (!targetTabset && node.getType() === 'tabset') {
+                targetTabset = node.getId();
+            }
+        });
+
+        if (targetTabset) {
+            for (let i = 0; i < needed; i++) {
+                currentModel.doAction(Actions.addNode({
+                    type: "tab",
+                    name: "Auto-Terminal",
+                    component: "terminal",
+                    config: { id: uuidv4() }
+                }, targetTabset, DockLocation.CENTER, -1));
+            }
+            // Wait for new terminals to mount
+            await new Promise(resolve => setTimeout(resolve, 500));
+            terminals = getTerminals();
+        }
+    }
+
+    // Run each command in its own terminal
+    const { WriteTerminal } = await import('../wailsjs/go/main/App');
+    startupCommands.forEach((cmd: any, index: number) => {
+        if (index < terminals.length) {
+            const terminalId = (terminals[index].getConfig() as any)?.id;
+            if (terminalId) {
+                WriteTerminal(terminalId, cmd.command + '\r');
+            }
+        }
+    });
   }, []);
 
   useEffect(() => {
@@ -41,6 +100,12 @@ function App() {
           const newModel = Model.fromJson(json);
           setModel(newModel);
           lastWorkspaceId.current = activeWorkspaceId;
+
+          // Run startup commands if not already run for this workspace in this session
+          if (activeWorkspaceId && !startupsRunFor.current.has(activeWorkspaceId)) {
+            startupsRunFor.current.add(activeWorkspaceId);
+            executeStartupCommands(activeWorkspace, newModel);
+          }
         } catch (e) {
           console.error("Failed to parse layout JSON", e);
         }
@@ -49,7 +114,7 @@ function App() {
       setModel(null);
       lastWorkspaceId.current = null;
     }
-  }, [activeWorkspaceId, activeWorkspace?.layout]);
+  }, [activeWorkspaceId, activeWorkspace?.layout, model, executeStartupCommands]);
 
   const saveLayout = useCallback(() => {
     if (model) {

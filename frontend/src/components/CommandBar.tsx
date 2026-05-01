@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useWorkspaceStore, Command as CommandType } from '../store';
 import { useModalStore } from '../modalStore';
-import { Command, Plus, Play, ChevronUp, ChevronDown, Terminal as TerminalIcon, Search, MoreVertical, Globe, Download, X, Check } from 'lucide-react';
+import { Command, Plus, Play, ChevronUp, ChevronDown, Terminal as TerminalIcon, Search, MoreVertical, Globe, Download, X, Check, Rocket } from 'lucide-react';
 import { WriteTerminal } from '../../wailsjs/go/main/App';
 import CommandModal from './CommandModal';
 
 const CommandBar: React.FC = () => {
-  const { workspaces, activeWorkspaceId, activeTerminalId, addCommandToActiveWorkspace, updateCommand, toggleCommandGlobal, importCommands, removeCommand } = useWorkspaceStore();
+  const { workspaces, activeWorkspaceId, activeTerminalId, addCommandToActiveWorkspace, updateCommand, toggleCommandGlobal, toggleCommandStartup, importCommands, removeCommand } = useWorkspaceStore();
   const { alert: modalAlert, confirm: modalConfirm } = useModalStore();
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   
@@ -59,12 +59,12 @@ const CommandBar: React.FC = () => {
     setContextMenu(null);
   };
 
-  const handleSaveCommand = async (name: string, cmdStr: string, isGlobal: boolean) => {
+  const handleSaveCommand = async (name: string, cmdStr: string, isGlobal: boolean, isStartup: boolean) => {
     try {
         if (editingCommand) {
-            await updateCommand(editingCommand.id, name, cmdStr, isGlobal);
+            await updateCommand(editingCommand.id, name, cmdStr, isGlobal, isStartup);
         } else {
-            await addCommandToActiveWorkspace(name, cmdStr, isGlobal);
+            await addCommandToActiveWorkspace(name, cmdStr, isGlobal, isStartup);
         }
     } catch (err) {
         modalAlert("Error", "Failed to save command: " + err);
@@ -73,6 +73,11 @@ const CommandBar: React.FC = () => {
 
   const handleToggleGlobal = async (cmdId: string) => {
     await toggleCommandGlobal(cmdId);
+    setContextMenu(null);
+  };
+
+  const handleToggleStartup = async (cmdId: string) => {
+    await toggleCommandStartup(cmdId);
     setContextMenu(null);
   };
 
@@ -152,7 +157,7 @@ const CommandBar: React.FC = () => {
                         onClick={() => handleRunCommand(cmd.command)}
                         style={{
                             padding: '4px 10px',
-                            backgroundColor: cmd.isGlobal ? 'rgba(57, 255, 20, 0.1)' : 'var(--bg-active)',
+                            backgroundColor: cmd.isGlobal ? 'rgba(57, 255, 20, 0.1)' : (cmd.isStartup ? 'rgba(255, 170, 0, 0.1)' : 'var(--bg-active)'),
                             borderRadius: '4px',
                             fontSize: '12px',
                             display: 'flex',
@@ -161,13 +166,13 @@ const CommandBar: React.FC = () => {
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
                             border: '1px solid transparent',
-                            borderColor: cmd.isGlobal ? 'rgba(57, 255, 20, 0.2)' : 'transparent',
+                            borderColor: cmd.isGlobal ? 'rgba(57, 255, 20, 0.2)' : (cmd.isStartup ? 'rgba(255, 170, 0, 0.2)' : 'transparent'),
                             transition: 'all 0.2s'
                         }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = cmd.isGlobal ? 'rgba(57, 255, 20, 0.2)' : 'transparent'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = cmd.isGlobal ? 'rgba(57, 255, 20, 0.2)' : (cmd.isStartup ? 'rgba(255, 170, 0, 0.2)' : 'transparent')}
                     >
-                        {cmd.isGlobal ? <Globe size={10} color="#39ff14" /> : <Play size={10} fill="currentColor" />}
+                        {cmd.isGlobal ? <Globe size={10} color="#39ff14" /> : (cmd.isStartup ? <Rocket size={10} color="#ffaa00" /> : <Play size={10} fill="currentColor" />)}
                         <span>{cmd.name}</span>
                     </div>
                 ))
@@ -251,7 +256,7 @@ const CommandBar: React.FC = () => {
                     backgroundColor: 'var(--bg-active)',
                     borderRadius: 'var(--radius)',
                     border: '1px solid var(--border)',
-                    borderColor: cmd.isGlobal ? 'rgba(57, 255, 20, 0.3)' : 'var(--border)',
+                    borderColor: cmd.isGlobal ? 'rgba(57, 255, 20, 0.3)' : (cmd.isStartup ? 'rgba(255, 170, 0, 0.3)' : 'var(--border)'),
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -265,6 +270,7 @@ const CommandBar: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {cmd.isGlobal && <Globe size={12} color="#39ff14" />}
+                        {cmd.isStartup && <Rocket size={12} color="#ffaa00" />}
                         <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-bright)' }}>{cmd.name}</span>
                     </div>
                     <MoreVertical size={14} color="var(--text-muted)" />
@@ -428,6 +434,15 @@ const CommandBar: React.FC = () => {
           >
             <Globe size={14} />
             <span style={{ fontSize: '13px', fontWeight: 600 }}>Toggle Global</span>
+          </div>
+          <div 
+            onClick={() => handleToggleStartup(contextMenu.command.id)}
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <Rocket size={14} />
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>Toggle Startup</span>
           </div>
           <div 
             onClick={() => handleRemoveCommand(contextMenu.command.id)}

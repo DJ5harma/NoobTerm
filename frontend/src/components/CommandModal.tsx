@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Command, Globe, Terminal } from 'lucide-react';
+import { X, Command, Globe, Terminal, Rocket } from 'lucide-react';
 import { Command as CommandType } from '../store';
 
 interface CommandModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (name: string, cmdStr: string, isGlobal: boolean) => void;
+    onSave: (name: string, cmdStr: string, isGlobal: boolean, isStartup: boolean) => void;
     initialData?: CommandType | null;
 }
 
@@ -13,6 +13,7 @@ const CommandModal: React.FC<CommandModalProps> = ({ isOpen, onClose, onSave, in
     const [name, setName] = useState('');
     const [command, setCommand] = useState('');
     const [isGlobal, setIsGlobal] = useState(false);
+    const [isStartup, setIsStartup] = useState(false);
     const nameRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -21,10 +22,12 @@ const CommandModal: React.FC<CommandModalProps> = ({ isOpen, onClose, onSave, in
                 setName(initialData.name);
                 setCommand(initialData.command);
                 setIsGlobal(!!initialData.isGlobal);
+                setIsStartup(!!initialData.isStartup);
             } else {
                 setName('');
                 setCommand('');
                 setIsGlobal(false);
+                setIsStartup(false);
             }
             setTimeout(() => nameRef.current?.focus(), 100);
         }
@@ -34,7 +37,7 @@ const CommandModal: React.FC<CommandModalProps> = ({ isOpen, onClose, onSave, in
 
     const handleSave = () => {
         if (!name || !command) return;
-        onSave(name, command, isGlobal);
+        onSave(name, command, isGlobal, isStartup);
         onClose();
     };
 
@@ -120,36 +123,74 @@ const CommandModal: React.FC<CommandModalProps> = ({ isOpen, onClose, onSave, in
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>This command will be sent to the active terminal.</span>
                     </div>
 
-                    {/* Global Toggle */}
-                    <div 
-                        onClick={() => setIsGlobal(!isGlobal)}
-                        style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '12px', 
-                            cursor: 'pointer',
-                            padding: '12px',
-                            borderRadius: 'var(--radius)',
-                            backgroundColor: isGlobal ? 'rgba(57, 255, 20, 0.05)' : 'transparent',
-                            border: `1px solid ${isGlobal ? 'rgba(57, 255, 20, 0.2)' : 'var(--border)'}`,
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        <div style={{ 
-                            width: '20px', height: '20px', borderRadius: '4px', border: '2px solid var(--border)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            borderColor: isGlobal ? '#39ff14' : 'var(--border)',
-                            backgroundColor: isGlobal ? '#39ff14' : 'transparent'
-                        }}>
-                            {isGlobal && <X size={14} color="black" strokeWidth={4} />}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Globe size={14} color={isGlobal ? "#39ff14" : "var(--text-muted)"} />
-                                <span style={{ fontWeight: 700, fontSize: '14px', color: isGlobal ? 'var(--text-bright)' : 'var(--text-main)' }}>Make Global</span>
+                    {/* Toggles */}
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        {/* Global Toggle */}
+                        <div 
+                            onClick={() => setIsGlobal(!isGlobal)}
+                            style={{ 
+                                flex: 1,
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '12px', 
+                                cursor: 'pointer',
+                                padding: '12px',
+                                borderRadius: 'var(--radius)',
+                                backgroundColor: isGlobal ? 'rgba(57, 255, 20, 0.05)' : 'transparent',
+                                border: `1px solid ${isGlobal ? 'rgba(57, 255, 20, 0.2)' : 'var(--border)'}`,
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <div style={{ 
+                                width: '20px', height: '20px', borderRadius: '4px', border: '2px solid var(--border)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                borderColor: isGlobal ? '#39ff14' : 'var(--border)',
+                                backgroundColor: isGlobal ? '#39ff14' : 'transparent'
+                            }}>
+                                {isGlobal && <X size={14} color="black" strokeWidth={4} />}
                             </div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Global commands appear in every workspace footer.</div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Globe size={14} color={isGlobal ? "#39ff14" : "var(--text-muted)"} />
+                                    <span style={{ fontWeight: 700, fontSize: '14px', color: isGlobal ? 'var(--text-bright)' : 'var(--text-main)' }}>Global</span>
+                                </div>
+                            </div>
                         </div>
+
+                        {/* Startup Toggle */}
+                        <div 
+                            onClick={() => setIsStartup(!isStartup)}
+                            style={{ 
+                                flex: 1,
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '12px', 
+                                cursor: 'pointer',
+                                padding: '12px',
+                                borderRadius: 'var(--radius)',
+                                backgroundColor: isStartup ? 'rgba(255, 170, 0, 0.05)' : 'transparent',
+                                border: `1px solid ${isStartup ? 'rgba(255, 170, 0, 0.2)' : 'var(--border)'}`,
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <div style={{ 
+                                width: '20px', height: '20px', borderRadius: '4px', border: '2px solid var(--border)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                borderColor: isStartup ? '#ffaa00' : 'var(--border)',
+                                backgroundColor: isStartup ? '#ffaa00' : 'transparent'
+                            }}>
+                                {isStartup && <X size={14} color="black" strokeWidth={4} />}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Rocket size={14} color={isStartup ? "#ffaa00" : "var(--text-muted)"} />
+                                    <span style={{ fontWeight: 700, fontSize: '14px', color: isStartup ? 'var(--text-bright)' : 'var(--text-main)' }}>Startup</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                        Global: Appears everywhere. Startup: Auto-runs on entry.
                     </div>
                 </div>
 
