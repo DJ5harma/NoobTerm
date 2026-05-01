@@ -23,18 +23,20 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
     let isMounted = true;
     let backendId = "";
 
-    // 1. Setup XTerm
+    // 1. Setup XTerm with High-Fidelity Settings
     const xterm = new XTerm({
       cursorBlink: true,
+      cursorStyle: 'bar',
       fontSize: 14,
-      fontFamily: 'var(--font-mono)',
+      // High-quality monospaced font stack
+      fontFamily: '"JetBrains Mono", "Cascadia Code", "Fira Code", Menlo, Monaco, "Courier New", monospace',
+      letterSpacing: 0,
+      lineHeight: 1.2,
       allowTransparency: true,
       convertEol: true,
-      theme: {
-        background: theme === 'pro' ? '#000000' : (theme === 'lightfun' ? '#ffffff' : (theme === 'joy' ? '#1e1e2e' : '#1a1a1a')),
-        foreground: theme === 'lightfun' ? '#243b53' : '#cdd6f4',
-        cursor: 'var(--accent)',
-      },
+      theme: getTerminalTheme(theme),
+      // @ts-ignore
+      allowProposedApi: true,
     });
 
     const fitAddon = new FitAddon();
@@ -45,10 +47,17 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
         // 2. Open in DOM
         xterm.open(containerRef.current!);
         
-        // 3. Optional WebGL
+        // 3. FORCE WebGL for Razor-Sharp Rendering
         try {
-            xterm.loadAddon(new WebglAddon());
-        } catch(e) {}
+            const webgl = new WebglAddon();
+            xterm.loadAddon(webgl);
+            // Fix for WebGL context loss on some systems
+            webgl.onContextLoss(() => {
+                webgl.dispose();
+            });
+        } catch(e) {
+            console.warn("WebGL not supported, falling back to standard renderer");
+        }
 
         // 4. Backend Connection
         backendId = await GetOrCreateTerminal(id, cwd || '');
@@ -79,21 +88,28 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
         }
 
         const resizeObserver = new ResizeObserver(() => {
-          if (isMounted) {
-            fitAddon.fit();
-            ResizeTerminal(backendId, xterm.cols, xterm.rows);
+          if (isMounted && containerRef.current) {
+            // Minor delay to ensure container has finished reflowing
+            requestAnimationFrame(() => {
+              fitAddon.fit();
+              if (backendId) {
+                ResizeTerminal(backendId, xterm.cols, xterm.rows);
+              }
+            });
           }
         });
         resizeObserver.observe(containerRef.current!);
 
+        // Initial fits
         fitAddon.fit();
+        setTimeout(() => fitAddon.fit(), 50);
         
         return () => {
           resizeObserver.disconnect();
           EventsOff(`terminal-output-${backendId}`);
         };
       } catch (err) {
-        xterm.write(`\r\nError: ${err}\r\n`);
+        xterm.write(`\r\n\x1b[31mError: ${err}\x1b[0m\r\n`);
       }
     };
 
@@ -113,7 +129,7 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
         width: '100%', 
         height: '100%', 
         display: 'flex',
-        padding: '12px',
+        padding: '10px',
         backgroundColor: 'var(--bg-main)',
         boxSizing: 'border-box'
       }}
@@ -125,5 +141,64 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
     </div>
   );
 };
+
+// High-Contrast Terminal Color Schemes
+function getTerminalTheme(theme: string) {
+    const common = {
+        black: '#000000',
+        red: '#cd3131',
+        green: '#0dbc79',
+        yellow: '#e5e510',
+        blue: '#2472c8',
+        magenta: '#bc3fbc',
+        cyan: '#11a8cd',
+        white: '#e5e5e5',
+        brightBlack: '#666666',
+        brightRed: '#f14c4c',
+        brightGreen: '#23d18b',
+        brightYellow: '#f5f543',
+        brightBlue: '#3b8eea',
+        brightMagenta: '#d670d6',
+        brightCyan: '#29b8db',
+        brightWhite: '#e5e5e5',
+        selectionBackground: 'rgba(255, 255, 255, 0.15)',
+    };
+
+    if (theme === 'pro') {
+        return {
+            ...common,
+            background: '#000000',
+            foreground: '#ffffff',
+            cursor: '#ffffff',
+            selectionBackground: 'rgba(255, 255, 255, 0.3)',
+        };
+    }
+    if (theme === 'lightfun') {
+        return {
+            ...common,
+            background: '#ffffff',
+            foreground: '#243b53',
+            cursor: '#ff4785',
+            black: '#102a43',
+            white: '#f0f4f8',
+            selectionBackground: 'rgba(0, 0, 0, 0.1)',
+        };
+    }
+    if (theme === 'joy') {
+        return {
+            ...common,
+            background: '#1e1e2e',
+            foreground: '#cdd6f4',
+            cursor: '#39ff14',
+            selectionBackground: 'rgba(203, 166, 247, 0.2)',
+        };
+    }
+    return {
+        ...common,
+        background: '#1a1a1a',
+        foreground: '#cccccc',
+        cursor: '#007acc',
+    };
+}
 
 export default Terminal;
