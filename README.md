@@ -1,3 +1,10 @@
+
+
+### DOWNLOAD THIS APP: 
+https://github.com/DJ5harma/NoobTerm/releases/tag/latest
+
+
+
 # 🚀 NoobTerm
 
 **NoobTerm** is a high-performance, cross-platform terminal emulator built with **Wails**, **Go**, and **React**. Designed for developers who want a fast, aesthetically pleasing, and workspace-aware terminal experience without the complexity.
