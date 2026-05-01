@@ -6,29 +6,8 @@ type Workspace struct {
 	Path      string    `json:"path"`
 	CreatedAt int64     `json:"createdAt"`
 	UpdatedAt int64     `json:"updatedAt"`
-	Tabs      []Tab     `json:"tabs"`
+	Layout    string    `json:"layout"` // JSON string for flexlayout-react
 	Commands  []Command `json:"commands"`
-}
-
-type Tab struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	Panes      []Pane     `json:"panes"`
-	RootLayout LayoutNode `json:"rootLayout"`
-}
-
-type Pane struct {
-	ID        string      `json:"id"`
-	CWD       string      `json:"cwd"`
-	ProcessID int         `json:"processId,omitempty"`
-	Layout    *LayoutNode `json:"layout"`
-}
-
-type LayoutNode struct {
-	Type      string        `json:"type"` // "split" or "pane"
-	Direction string        `json:"direction,omitempty"` // "horizontal" or "vertical"
-	Children  []*LayoutNode `json:"children,omitempty"`
-	PaneID    string        `json:"paneId,omitempty"`
 }
 
 type Command struct {

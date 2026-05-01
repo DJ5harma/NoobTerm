@@ -39,7 +39,7 @@ func (m *Manager) Create(name, path string) (*Workspace, error) {
 		Path:      path,
 		CreatedAt: time.Now().UnixMilli(),
 		UpdatedAt: time.Now().UnixMilli(),
-		Tabs:      []Tab{},
+		Layout:    "", // Will be initialized by frontend
 		Commands:  []Command{},
 	}
 
@@ -65,16 +65,8 @@ func (m *Manager) List() ([]*Workspace, error) {
 			}
 			var ws Workspace
 			if err := json.Unmarshal(data, &ws); err == nil {
-				if ws.Tabs == nil {
-					ws.Tabs = []Tab{}
-				}
 				if ws.Commands == nil {
 					ws.Commands = []Command{}
-				}
-				for i := range ws.Tabs {
-					if ws.Tabs[i].Panes == nil {
-						ws.Tabs[i].Panes = []Pane{}
-					}
 				}
 				workspaces = append(workspaces, &ws)
 			}

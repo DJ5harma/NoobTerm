@@ -10,72 +10,91 @@ interface TerminalProps {
   cwd?: string;
 }
 
+// Global cache to keep terminal sessions alive during tab dragging/reordering
+const terminalCache: Record<string, {
+  backendId: string;
+  xterm: XTerm;
+  fitAddon: FitAddon;
+}> = {};
+
+export const closeTerminalSession = (id: string) => {
+  const cache = terminalCache[id];
+  if (cache) {
+    EventsOff(`terminal-output-${cache.backendId}`);
+    CloseTerminal(cache.backendId);
+    cache.xterm.dispose();
+    delete terminalCache[id];
+  }
+};
+
 const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<XTerm | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
-  const backendIdRef = useRef<string | null>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
     if (!terminalRef.current) return;
-
-    const term = new XTerm({
-      cursorBlink: true,
-      fontSize: 14,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      theme: {
-        background: '#1e1e1e',
-      },
-    });
-
-    const fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
-    term.open(terminalRef.current);
-    fitAddon.fit();
-
-    xtermRef.current = term;
-    fitAddonRef.current = fitAddon;
+    if (isInitialized.current) return;
 
     const setupTerminal = async () => {
-      try {
-        const backendId = await CreateTerminal(cwd || '');
-        backendIdRef.current = backendId;
+      let cache = terminalCache[id];
 
-        term.onData((data) => {
-          WriteTerminal(backendId, data);
+      if (!cache) {
+        const term = new XTerm({
+          cursorBlink: true,
+          fontSize: 14,
+          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+          theme: {
+            background: '#1e1e1e',
+          },
         });
 
-        EventsOn(`terminal-output-${backendId}`, (data: string) => {
-          term.write(data);
-        });
+        const fitAddon = new FitAddon();
+        term.loadAddon(fitAddon);
 
-        const handleResize = () => {
-          fitAddon.fit();
-          ResizeTerminal(backendId, term.cols, term.rows);
-        };
+        try {
+          const backendId = await CreateTerminal(cwd || '');
+          
+          term.onData((data) => {
+            WriteTerminal(backendId, data);
+          });
 
-        window.addEventListener('resize', handleResize);
-        handleResize();
+          EventsOn(`terminal-output-${backendId}`, (data: string) => {
+            term.write(data);
+          });
 
-        return () => {
-          window.removeEventListener('resize', handleResize);
-          EventsOff(`terminal-output-${backendId}`);
-          CloseTerminal(backendId);
-        };
-      } catch (err) {
-        term.write(`\r\n\x1b[31mError creating terminal: ${err}\x1b[0m\r\n`);
+          cache = { backendId, xterm: term, fitAddon };
+          terminalCache[id] = cache;
+        } catch (err) {
+          term.write(`\r\n\x1b[31mError creating terminal: ${err}\x1b[0m\r\n`);
+          return;
+        }
       }
+
+      cache.xterm.open(terminalRef.current!);
+      cache.fitAddon.fit();
+      ResizeTerminal(cache.backendId, cache.xterm.cols, cache.xterm.rows);
+
+      const handleResize = () => {
+        if (cache) {
+          cache.fitAddon.fit();
+          ResizeTerminal(cache.backendId, cache.xterm.cols, cache.xterm.rows);
+        }
+      };
+
+      window.addEventListener('resize', handleResize);
+      isInitialized.current = true;
+
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        // We don't close the terminal here because we want to keep it alive in the cache
+        // for when the tab is moved or re-selected.
+      };
     };
 
-    const cleanupPromise = setupTerminal();
+    setupTerminal();
+  }, [id, cwd]);
 
-    return () => {
-      term.dispose();
-      cleanupPromise.then(cleanup => cleanup && cleanup());
-    };
-  }, [cwd]);
-
-  return <div ref={terminalRef} style={{ width: '100%', height: '100%' }} />;
+  return <div ref={terminalRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />;
 };
 
 export default Terminal;

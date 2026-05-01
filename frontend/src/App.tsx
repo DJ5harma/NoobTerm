@@ -1,123 +1,158 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Layout, Model, TabNode, Action, Actions, DockLocation, TabSetNode, ITabSetRenderValues, BorderNode } from 'flexlayout-react';
+import 'flexlayout-react/style/dark.css';
 import Sidebar from './components/Sidebar';
-import PaneLayout from './components/PaneLayout';
+import Terminal, { closeTerminalSession } from './components/Terminal';
 import { useWorkspaceStore } from './store';
-import { Plus, X, Columns, Rows } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 function App() {
   const store = useWorkspaceStore();
+  const { workspaces, activeWorkspaceId, fetchWorkspaces, updateActiveWorkspaceLayout } = store;
+
+  const [model, setModel] = useState<Model | null>(null);
+  const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   
-  const workspaces = store?.workspaces || [];
-  const activeWorkspaceId = store?.activeWorkspaceId;
-  const activeTabId = store?.activeTabId;
-  const fetchWorkspaces = store?.fetchWorkspaces;
-  const setActiveTab = store?.setActiveTab;
-  const addTab = store?.addTab;
-  const removeTab = store?.removeTab;
-  const addPane = store?.addPane;
+  // Track current workspace ID to know when to completely reset the model
+  const lastWorkspaceId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (fetchWorkspaces) fetchWorkspaces();
-  }, [fetchWorkspaces]);
+    fetchWorkspaces();
+  }, []);
 
-  // Safe access to workspaces
-  const activeWorkspace = (activeWorkspaceId && Array.isArray(workspaces)) 
-    ? workspaces.find(w => w.id === activeWorkspaceId) 
-    : undefined;
-    
-  const activeTab = (activeWorkspace && Array.isArray(activeWorkspace.tabs)) 
-    ? activeWorkspace.tabs.find(t => t.id === activeTabId) 
-    : undefined;
-
-  const handleSplit = (direction: 'horizontal' | 'vertical') => {
-    if (!activeTab) return;
-    
-    // For MVP, we split the first pane we find in the layout tree
-    const findFirstPaneId = (node: any): string | null => {
-      if (node.type === 'pane') return node.paneId;
-      if (node.children && node.children.length > 0) {
-        return findFirstPaneId(node.children[0]);
+  useEffect(() => {
+    if (activeWorkspace) {
+      // Only reload model if we switched workspaces or if no model exists
+      if (activeWorkspaceId !== lastWorkspaceId.current || !model) {
+        try {
+          const json = JSON.parse(activeWorkspace.layout);
+          const newModel = Model.fromJson(json);
+          setModel(newModel);
+          lastWorkspaceId.current = activeWorkspaceId;
+        } catch (e) {
+          console.error("Failed to parse layout JSON", e);
+        }
       }
-      return null;
-    };
-
-    const paneId = findFirstPaneId(activeTab.rootLayout);
-    if (paneId) {
-      addPane(activeTab.id, direction, paneId);
+    } else {
+      setModel(null);
+      lastWorkspaceId.current = null;
     }
+  }, [activeWorkspaceId, activeWorkspace?.layout]);
+
+  const saveLayout = useCallback(() => {
+    if (model) {
+      updateActiveWorkspaceLayout(JSON.stringify(model.toJson()));
+    }
+  }, [model, updateActiveWorkspaceLayout]);
+
+  const onModelChange = useCallback(() => {
+    saveLayout();
+  }, [saveLayout]);
+
+  const onAction = useCallback((action: Action) => {
+    if (action.type === Actions.DELETE_TAB) {
+      const nodeId = (action.data as any).node;
+      const node = model?.getNodeById(nodeId) as TabNode;
+      if (node) {
+        const config = node.getConfig();
+        if (config && config.id) {
+          closeTerminalSession(config.id);
+        }
+      }
+    }
+    return action;
+  }, [model]);
+
+  const factory = (node: TabNode) => {
+    const component = node.getComponent();
+    const config = node.getConfig();
+
+    if (component === "terminal") {
+      return <Terminal id={config.id} cwd={activeWorkspace?.path} />;
+    }
+    return <div>Unknown component</div>;
   };
+
+  const addTerminalToTabset = useCallback((tabsetNodeId: string) => {
+    if (model) {
+      model.doAction(
+        Actions.addNode(
+          {
+            type: "tab",
+            component: "terminal",
+            name: "Terminal",
+            config: { id: uuidv4() }
+          },
+          tabsetNodeId,
+          DockLocation.CENTER,
+          -1
+        )
+      );
+      saveLayout();
+    }
+  }, [model, saveLayout]);
+
+  const onRenderTabSet = useCallback((node: TabSetNode | BorderNode, renderValues: ITabSetRenderValues) => {
+    if (node instanceof TabSetNode) {
+      renderValues.buttons.push(
+        <button
+          key="add-terminal"
+          className="flexlayout__tabset_button"
+          style={{
+            border: 'none',
+            background: 'transparent',
+            color: '#ccc',
+            cursor: 'pointer',
+            padding: '0 8px',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+          onClick={() => addTerminalToTabset(node.getId())}
+          title="Add Terminal"
+        >
+          <Plus size={14} />
+        </button>
+      );
+    }
+  }, [addTerminalToTabset]);
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: '#1e1e1e', color: '#fff' }}>
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {activeWorkspace ? (
-          <>
-            <div style={{ display: 'flex', backgroundColor: '#252526', borderBottom: '1px solid #333', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flex: 1, overflowX: 'auto' }}>
-                {(activeWorkspace.tabs || []).map(tab => (
-                  <div 
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    style={{
-                      padding: '8px 16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      backgroundColor: activeTabId === tab.id ? '#1e1e1e' : 'transparent',
-                      borderRight: '1px solid #333',
-                      fontSize: '13px',
-                      minWidth: '100px',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <span style={{ marginRight: '8px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.name}</span>
-                    <X 
-                      size={14} 
-                      style={{ opacity: 0.5 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeTab(activeWorkspace.id, tab.id);
-                      }}
-                    />
-                  </div>
-                ))}
-                <div 
-                  onClick={() => addTab(activeWorkspace.id, 'New Tab')}
-                  style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: 0.7 }}
-                >
-                  <Plus size={16} />
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', padding: '0 10px', gap: '8px' }}>
-                <Columns size={16} style={{ cursor: 'pointer', opacity: activeTab ? 0.8 : 0.3 }} onClick={() => handleSplit('horizontal')} />
-                <Rows size={16} style={{ cursor: 'pointer', opacity: activeTab ? 0.8 : 0.3 }} onClick={() => handleSplit('vertical')} />
-              </div>
-            </div>
-            
-            <div style={{ flex: 1, position: 'relative' }}>
-              {activeTab ? (
-                <PaneLayout node={activeTab.rootLayout} cwd={activeWorkspace.path} />
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column', gap: '20px' }}>
-                  <span style={{ opacity: 0.5 }}>This workspace has no tabs</span>
-                  <button 
-                    onClick={() => addTab(activeWorkspace.id, 'Main')}
-                    style={{ padding: '8px 16px', backgroundColor: '#007acc', border: 'none', color: 'white', borderRadius: '2px', cursor: 'pointer' }}
-                  >
-                    Create first tab
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
+        {activeWorkspace && model ? (
+          <div style={{ flex: 1, position: 'relative' }}>
+            <Layout 
+              model={model} 
+              factory={factory} 
+              onModelChange={onModelChange}
+              onAction={onAction}
+              onRenderTabSet={onRenderTabSet}
+            />
+          </div>
         ) : (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             <span style={{ opacity: 0.5 }}>Select or create a workspace in the sidebar to begin</span>
           </div>
         )}
       </div>
+      <style>{`
+        .flexlayout__layout {
+          background-color: #1e1e1e;
+        }
+        .flexlayout__tabset_header {
+          background-color: #252526 !important;
+        }
+        .flexlayout__tab_button--selected {
+          background-color: #1e1e1e !important;
+          border-top: 1px solid #007acc !important;
+        }
+        .flexlayout__tabset_button:hover {
+          color: #fff !important;
+          background-color: rgba(255,255,255,0.1);
+        }
+      `}</style>
     </div>
   );
 }
