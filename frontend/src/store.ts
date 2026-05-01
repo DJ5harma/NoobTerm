@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { workspace } from '../wailsjs/go/models';
 import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace } from '../wailsjs/go/main/App';
+import { v4 as uuidv4 } from 'uuid';
 
 type Workspace = workspace.Workspace;
 
@@ -18,7 +19,7 @@ interface WorkspaceState {
   updateActiveWorkspaceLayout: (layoutJson: string) => void;
 }
 
-const DEFAULT_LAYOUT = JSON.stringify({
+const getNewDefaultLayout = () => JSON.stringify({
   global: { tabEnableClose: true },
   borders: [],
   layout: {
@@ -26,14 +27,44 @@ const DEFAULT_LAYOUT = JSON.stringify({
     weight: 100,
     children: [
       {
+        type: "row",
+        weight: 40,
+        children: [
+          {
+            type: "tabset",
+            weight: 50,
+            children: [
+              {
+                type: "tab",
+                name: "Primary",
+                component: "terminal",
+                config: { id: uuidv4() }
+              }
+            ]
+          },
+          {
+            type: "tabset",
+            weight: 50,
+            children: [
+              {
+                type: "tab",
+                name: "Secondary",
+                component: "terminal",
+                config: { id: uuidv4() }
+              }
+            ]
+          }
+        ]
+      },
+      {
         type: "tabset",
-        weight: 100,
+        weight: 60,
         children: [
           {
             type: "tab",
-            name: "Terminal",
+            name: "Main",
             component: "terminal",
-            config: { id: "initial-terminal" }
+            config: { id: uuidv4() }
           }
         ]
       }
@@ -52,7 +83,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       
       const fixedWorkspaces = safeWorkspaces.map(ws => ({
         ...ws,
-        layout: ws.layout || DEFAULT_LAYOUT
+        layout: ws.layout || getNewDefaultLayout()
       })) as Workspace[];
 
       set({ workspaces: fixedWorkspaces });
@@ -70,7 +101,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   createWorkspace: async (name, path) => {
     const ws = await CreateWorkspace(name, path);
-    const newWs = { ...ws, layout: DEFAULT_LAYOUT } as Workspace;
+    const newWs = { ...ws, layout: getNewDefaultLayout() } as Workspace;
     set(state => ({ 
       workspaces: [...(state.workspaces || []), newWs],
       activeWorkspaceId: newWs.id
