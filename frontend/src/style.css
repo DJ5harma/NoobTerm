@@ -135,14 +135,6 @@ html, body, #root {
   outline-offset: -6px;
   box-shadow: 0 0 40px var(--focus-glow), inset 0 0 20px var(--focus-glow) !important;
   z-index: 1000 !important;
-  transform: scale(0.99);
-  animation: focal-pulse 2s infinite;
-}
-
-@keyframes focal-pulse {
-  0% { transform: scale(0.99); opacity: 1; }
-  50% { transform: scale(0.985); opacity: 0.95; }
-  100% { transform: scale(0.99); opacity: 1; }
 }
 
 /* Sidebar Styling */
