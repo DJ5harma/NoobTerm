@@ -174,3 +174,13 @@ html, body, #root {
 }
 .theme-option:hover { background: var(--bg-active); }
 .theme-option.active { border-color: var(--accent); background: var(--bg-active); }
+
+/* Utility Classes */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

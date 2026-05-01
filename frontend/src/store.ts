@@ -19,6 +19,7 @@ interface WorkspaceState {
   deleteWorkspace: (id: string) => Promise<void>;
   
   updateActiveWorkspaceLayout: (layoutJson: string) => void;
+  addCommandToActiveWorkspace: (name: string, cmdStr: string) => Promise<void>;
 }
 
 const getNewDefaultLayout = () => JSON.stringify({
@@ -86,7 +87,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       
       const fixedWorkspaces = safeWorkspaces.map(ws => ({
         ...ws,
-        layout: ws.layout || getNewDefaultLayout()
+        layout: ws.layout || getNewDefaultLayout(),
+        commands: ws.commands || []
       })) as Workspace[];
 
       set({ workspaces: fixedWorkspaces });
@@ -106,7 +108,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   createWorkspace: async (name, path) => {
     const ws = await CreateWorkspace(name, path);
-    const newWs = { ...ws, layout: getNewDefaultLayout() } as Workspace;
+    const newWs = { 
+      ...ws, 
+      layout: getNewDefaultLayout(),
+      commands: ws.commands || []
+    } as Workspace;
     set(state => ({ 
       workspaces: [...(state.workspaces || []), newWs],
       activeWorkspaceId: newWs.id
@@ -140,6 +146,48 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const activeWs = updatedWorkspaces.find(w => w.id === activeWorkspaceId);
     if (activeWs) {
       SaveWorkspace(activeWs as any);
+    }
+  },
+
+  addCommandToActiveWorkspace: async (name, cmdStr) => {
+    const { activeWorkspaceId } = get();
+    if (!activeWorkspaceId) return;
+
+    // Use a simple, reliable ID generation
+    const id = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+
+    const newCommand = {
+      id,
+      name,
+      command: cmdStr,
+      variables: []
+    };
+
+    set(state => {
+      const updatedWorkspaces = state.workspaces.map(ws => {
+        if (ws.id === activeWorkspaceId) {
+          const currentCommands = Array.isArray(ws.commands) ? ws.commands : [];
+          return {
+            ...ws,
+            commands: [...currentCommands, newCommand]
+          };
+        }
+        return ws;
+      });
+      return { workspaces: updatedWorkspaces as Workspace[] };
+    });
+    
+    // Get the updated workspace to save
+    const updatedState = get();
+    const activeWs = updatedState.workspaces.find(w => w.id === activeWorkspaceId);
+    
+    if (activeWs) {
+      try {
+        await SaveWorkspace(activeWs as any);
+      } catch (err) {
+        console.error("Failed to save workspace after adding command:", err);
+        alert("Saved to UI, but failed to persist to disk: " + err);
+      }
     }
   }
 }));

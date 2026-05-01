@@ -3,6 +3,7 @@ import { Layout, Model, TabNode, Action, Actions, DockLocation, TabSetNode, ITab
 import 'flexlayout-react/style/dark.css';
 import Sidebar from './components/Sidebar';
 import Terminal from './components/Terminal';
+import CommandBar from './components/CommandBar';
 import { useWorkspaceStore } from './store';
 import { useThemeStore } from './themeStore';
 import { CloseTerminal } from '../wailsjs/go/main/App';
@@ -183,16 +184,19 @@ function App() {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
         {activeWorkspace && model ? (
-          <div style={{ flex: 1, position: 'relative', padding: (theme === 'joy' || theme === 'lightfun') ? '12px' : '0' }}>
-            <Layout 
-              model={model} 
-              factory={factory} 
-              onModelChange={onModelChange}
-              onAction={onAction}
-              onRenderTabSet={onRenderTabSet}
-              onContextMenu={onContextMenu}
-            />
-          </div>
+          <>
+            <div style={{ flex: 1, position: 'relative', padding: (theme === 'joy' || theme === 'lightfun') ? '12px' : '0' }}>
+              <Layout 
+                model={model} 
+                factory={factory} 
+                onModelChange={onModelChange}
+                onAction={onAction}
+                onRenderTabSet={onRenderTabSet}
+                onContextMenu={onContextMenu}
+              />
+            </div>
+            <CommandBar />
+          </>
         ) : (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             <div className="fade-in" style={{ textAlign: 'center', opacity: 0.5 }}>
