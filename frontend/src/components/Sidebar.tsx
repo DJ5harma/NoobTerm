@@ -5,6 +5,7 @@ import { useModalStore } from '../modalStore';
 import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
+import Logo from '../assets/images/logo_2.png';
 
 interface ContextMenu {
   x: number;
@@ -144,7 +145,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
 
       {/* Sidebar Header */}
       <div style={{ 
-        padding: isCollapsed ? '20px 0' : '20px', 
+        padding: isCollapsed ? '15px 0' : '20px', 
         display: 'flex', 
         justifyContent: isCollapsed ? 'center' : 'space-between', 
         alignItems: 'center',
@@ -152,22 +153,31 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
         overflow: 'hidden',
         whiteSpace: 'nowrap'
       }}>
-        {!isCollapsed && <span style={{ 
-          fontWeight: 900, 
-          fontSize: '14px', 
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          color: 'var(--text-bright)'
-        }}>Termspace</span>}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div onClick={handleCreateWorkspace} style={{ cursor: 'pointer' }} title="New Workspace">
-                <Plus 
-                    size={20} 
-                    strokeWidth={3} 
-                    style={{ color: 'var(--accent)' }} 
-                />
+        {!isCollapsed ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img src={Logo} style={{ width: '56px', height: '56px', borderRadius: '6px' }} alt="NoobTerm" />
+                <span style={{ 
+                    fontWeight: 900, 
+                    fontSize: '14px', 
+                    letterSpacing: '1px',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-bright)'
+                }}>NoobTerm</span>
             </div>
-        </div>
+        ) : (
+            <img src={Logo} style={{ width: '32px', height: '32px', borderRadius: '8px' }} alt="L" />
+        )}
+        {!isCollapsed && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div onClick={handleCreateWorkspace} style={{ cursor: 'pointer' }} title="New Workspace">
+                    <Plus 
+                        size={20} 
+                        strokeWidth={3} 
+                        style={{ color: 'var(--accent)' }} 
+                    />
+                </div>
+            </div>
+        )}
       </div>
 
       {/* Workspace List */}
