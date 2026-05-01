@@ -46,8 +46,12 @@ func (a *App) SelectDirectory() (string, error) {
 
 // Terminal methods
 
-func (a *App) CreateTerminal(cwd string) (string, error) {
-	return a.terminalManager.Create(cwd)
+func (a *App) GetOrCreateTerminal(id, cwd string) (string, error) {
+	return a.terminalManager.Create(id, cwd)
+}
+
+func (a *App) GetTerminalBuffer(id string) string {
+	return a.terminalManager.GetBuffer(id)
 }
 
 func (a *App) WriteTerminal(id, data string) error {

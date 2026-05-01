@@ -6,16 +6,20 @@ export function CloseTerminal(arg1) {
   return window['go']['main']['App']['CloseTerminal'](arg1);
 }
 
-export function CreateTerminal(arg1) {
-  return window['go']['main']['App']['CreateTerminal'](arg1);
-}
-
 export function CreateWorkspace(arg1, arg2) {
   return window['go']['main']['App']['CreateWorkspace'](arg1, arg2);
 }
 
 export function DeleteWorkspace(arg1) {
   return window['go']['main']['App']['DeleteWorkspace'](arg1);
+}
+
+export function GetOrCreateTerminal(arg1, arg2) {
+  return window['go']['main']['App']['GetOrCreateTerminal'](arg1, arg2);
+}
+
+export function GetTerminalBuffer(arg1) {
+  return window['go']['main']['App']['GetTerminalBuffer'](arg1);
 }
 
 export function ListWorkspaces() {

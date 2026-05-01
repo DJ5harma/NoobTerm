@@ -4,11 +4,13 @@ import {workspace} from '../models';
 
 export function CloseTerminal(arg1:string):Promise<void>;
 
-export function CreateTerminal(arg1:string):Promise<string>;
-
 export function CreateWorkspace(arg1:string,arg2:string):Promise<workspace.Workspace>;
 
 export function DeleteWorkspace(arg1:string):Promise<void>;
+
+export function GetOrCreateTerminal(arg1:string,arg2:string):Promise<string>;
+
+export function GetTerminalBuffer(arg1:string):Promise<string>;
 
 export function ListWorkspaces():Promise<Array<workspace.Workspace>>;
 

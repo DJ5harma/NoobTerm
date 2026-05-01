@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import Terminal from './components/Terminal';
 import { useWorkspaceStore } from './store';
 import { useThemeStore } from './themeStore';
+import { CloseTerminal } from '../wailsjs/go/main/App';
 import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,7 +16,6 @@ function App() {
 
   const [model, setModel] = useState<Model | null>(null);
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
-  
   const lastWorkspaceId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -51,13 +51,23 @@ function App() {
   }, [saveLayout]);
 
   const onAction = useCallback((action: Action) => {
+    if (action.type === Actions.DELETE_TAB) {
+      const nodeId = (action.data as any).node;
+      const node = model?.getNodeById(nodeId) as TabNode;
+      if (node) {
+        const config = node.getConfig();
+        if (config && config.id) {
+          // Explicit cleanup
+          CloseTerminal(config.id);
+        }
+      }
+    }
     return action;
-  }, []);
+  }, [model]);
 
   const factory = (node: TabNode) => {
     const component = node.getComponent();
     const config = node.getConfig();
-
     if (component === "terminal") {
       return <Terminal id={config.id} cwd={activeWorkspace?.path} />;
     }
@@ -68,12 +78,7 @@ function App() {
     if (model) {
       model.doAction(
         Actions.addNode(
-          {
-            type: "tab",
-            component: "terminal",
-            name: "Terminal",
-            config: { id: uuidv4() }
-          },
+          { type: "tab", component: "terminal", name: "Terminal", config: { id: uuidv4() } },
           tabsetNodeId,
           DockLocation.CENTER,
           -1
@@ -90,13 +95,8 @@ function App() {
           key="add-terminal"
           className="flexlayout__tabset_button"
           style={{
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--accent)',
-            cursor: 'pointer',
-            padding: '0 8px',
-            display: 'flex',
-            alignItems: 'center'
+            border: 'none', background: 'transparent', color: 'var(--accent)',
+            cursor: 'pointer', padding: '0 8px', display: 'flex', alignItems: 'center'
           }}
           onClick={() => addTerminalToTabset(node.getId())}
           title="Add Terminal"
@@ -112,7 +112,7 @@ function App() {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
         {activeWorkspace && model ? (
-          <div style={{ flex: 1, position: 'relative', padding: theme === 'joy' ? '12px' : '0' }}>
+          <div style={{ flex: 1, position: 'relative', padding: (theme === 'joy' || theme === 'lightfun') ? '12px' : '0' }}>
             <Layout 
               model={model} 
               factory={factory} 
@@ -125,7 +125,7 @@ function App() {
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             <div className="fade-in" style={{ textAlign: 'center', opacity: 0.5 }}>
                <h1 style={{ fontSize: '3rem', margin: 0 }}>Termspace</h1>
-               <p>Choose a workspace or create a new playground!</p>
+               <p>Select a workspace to start your journey!</p>
             </div>
           </div>
         )}

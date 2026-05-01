@@ -1,24 +1,26 @@
 package terminal
 
 import (
+	"bytes"
 	"context"
-	"io"
-	"log"
 	"os"
 	"os/exec"
 	"runtime"
 	"sync"
 
 	"github.com/aymanbagabas/go-pty"
-	"github.com/google/uuid"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+const maxBufferBytes = 100 * 1024 
+
 type Session struct {
-	ID   string
-	PTY  pty.Pty
-	Cmd  *pty.Cmd
-	Quit chan struct{}
+	ID     string
+	PTY    pty.Pty
+	Cmd    *pty.Cmd
+	Quit   chan struct{}
+	Buffer bytes.Buffer
+	mu     sync.Mutex
 }
 
 type Manager struct {
@@ -37,9 +39,13 @@ func (m *Manager) SetContext(ctx context.Context) {
 	m.ctx = ctx
 }
 
-func (m *Manager) Create(cwd string) (string, error) {
+func (m *Manager) Create(id, cwd string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	if session, ok := m.sessions[id]; ok {
+		return session.ID, nil
+	}
 
 	p, err := pty.New()
 	if err != nil {
@@ -56,7 +62,6 @@ func (m *Manager) Create(cwd string) (string, error) {
 		}
 	}
 
-	// Resolve absolute path to shell to avoid relative path issues in go-pty
 	if fullPath, err := exec.LookPath(shell); err == nil {
 		shell = fullPath
 	}
@@ -71,7 +76,6 @@ func (m *Manager) Create(cwd string) (string, error) {
 		return "", err
 	}
 
-	id := uuid.New().String()
 	session := &Session{
 		ID:   id,
 		PTY:  p,
@@ -80,8 +84,6 @@ func (m *Manager) Create(cwd string) (string, error) {
 	}
 
 	m.sessions[id] = session
-
-	// Read output in a goroutine
 	go m.readOutput(session)
 
 	return id, nil
@@ -96,18 +98,37 @@ func (m *Manager) readOutput(session *Session) {
 		default:
 			n, err := session.PTY.Read(buf)
 			if n > 0 {
-				// Emit event to frontend
-				wailsRuntime.EventsEmit(m.ctx, "terminal-output-"+session.ID, string(buf[:n]))
+				data := buf[:n]
+				
+				session.mu.Lock()
+				if session.Buffer.Len()+len(data) > maxBufferBytes {
+					session.Buffer.Reset()
+				}
+				session.Buffer.Write(data)
+				session.mu.Unlock()
+
+				wailsRuntime.EventsEmit(m.ctx, "terminal-output-"+session.ID, string(data))
 			}
 			if err != nil {
-				if err != io.EOF {
-					log.Printf("Terminal %s read error: %v", session.ID, err)
-				}
 				m.Close(session.ID)
 				return
 			}
 		}
 	}
+}
+
+func (m *Manager) GetBuffer(id string) string {
+	m.mu.Lock()
+	session, ok := m.sessions[id]
+	m.mu.Unlock()
+
+	if !ok {
+		return ""
+	}
+
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	return session.Buffer.String()
 }
 
 func (m *Manager) Write(id, data string) error {
@@ -150,6 +171,4 @@ func (m *Manager) Close(id string) {
 	if session.Cmd.Process != nil {
 		session.Cmd.Process.Kill()
 	}
-	// Notify frontend that terminal is closed
-	wailsRuntime.EventsEmit(m.ctx, "terminal-closed-"+id, nil)
 }
