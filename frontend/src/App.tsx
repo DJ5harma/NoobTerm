@@ -1,14 +1,16 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Layout, Model, TabNode, Action, Actions, DockLocation, TabSetNode, ITabSetRenderValues, BorderNode } from 'flexlayout-react';
 import 'flexlayout-react/style/dark.css';
 import Sidebar from './components/Sidebar';
 import Terminal from './components/Terminal';
 import { useWorkspaceStore } from './store';
+import { useThemeStore } from './themeStore';
 import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 function App() {
   const store = useWorkspaceStore();
+  const { theme } = useThemeStore();
   const { workspaces, activeWorkspaceId, fetchWorkspaces, updateActiveWorkspaceLayout } = store;
 
   const [model, setModel] = useState<Model | null>(null);
@@ -49,8 +51,6 @@ function App() {
   }, [saveLayout]);
 
   const onAction = useCallback((action: Action) => {
-    // Note: We've removed closeTerminalSession because 
-    // Terminal component now handles its own cleanup on unmount
     return action;
   }, []);
 
@@ -92,7 +92,7 @@ function App() {
           style={{
             border: 'none',
             background: 'transparent',
-            color: '#ccc',
+            color: 'var(--accent)',
             cursor: 'pointer',
             padding: '0 8px',
             display: 'flex',
@@ -101,18 +101,18 @@ function App() {
           onClick={() => addTerminalToTabset(node.getId())}
           title="Add Terminal"
         >
-          <Plus size={14} />
+          <Plus size={16} strokeWidth={3} />
         </button>
       );
     }
   }, [addTerminalToTabset]);
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: '#1e1e1e', color: '#fff' }}>
+    <div data-theme={theme} style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
         {activeWorkspace && model ? (
-          <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ flex: 1, position: 'relative', padding: theme === 'joy' ? '12px' : '0' }}>
             <Layout 
               model={model} 
               factory={factory} 
@@ -123,26 +123,13 @@ function App() {
           </div>
         ) : (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <span style={{ opacity: 0.5 }}>Select or create a workspace in the sidebar to begin</span>
+            <div className="fade-in" style={{ textAlign: 'center', opacity: 0.5 }}>
+               <h1 style={{ fontSize: '3rem', margin: 0 }}>Termspace</h1>
+               <p>Choose a workspace or create a new playground!</p>
+            </div>
           </div>
         )}
       </div>
-      <style>{`
-        .flexlayout__layout {
-          background-color: #1e1e1e;
-        }
-        .flexlayout__tabset_header {
-          background-color: #252526 !important;
-        }
-        .flexlayout__tab_button--selected {
-          background-color: #1e1e1e !important;
-          border-top: 1px solid #007acc !important;
-        }
-        .flexlayout__tabset_button:hover {
-          color: #fff !important;
-          background-color: rgba(255,255,255,0.1);
-        }
-      `}</style>
     </div>
   );
 }

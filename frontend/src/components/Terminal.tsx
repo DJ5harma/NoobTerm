@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 import { CreateTerminal, WriteTerminal, ResizeTerminal, CloseTerminal } from '../../wailsjs/go/main/App';
+import { useThemeStore } from '../themeStore';
 
 interface TerminalProps {
   id: string; 
@@ -14,19 +15,19 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalInstance = useRef<XTerm | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const { theme } = useThemeStore();
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 1. Initialize Terminal
     const term = new XTerm({
       cursorBlink: true,
       fontSize: 14,
       fontFamily: 'var(--font-mono)',
       theme: {
-        background: '#1a1b26',
+        background: theme === 'pro' ? '#000000' : (theme === 'joy' ? '#2d1b4e' : '#1e1e1e'),
         foreground: '#a9b1d6',
-        cursor: '#7aa2f7',
+        cursor: 'var(--accent)',
       },
       allowTransparency: true,
       convertEol: true,
@@ -40,17 +41,11 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
 
     const init = async () => {
       try {
-        // 2. Create Backend PTY
         backendId = await CreateTerminal(cwd || '');
-        
-        // 3. Connect I/O
         term.onData(data => WriteTerminal(backendId, data));
         EventsOn(`terminal-output-${backendId}`, (data: string) => term.write(data));
-
-        // 4. Mount to DOM
         term.open(containerRef.current!);
         
-        // 5. Setup Auto-Resize using ResizeObserver
         const resizeObserver = new ResizeObserver(() => {
           if (containerRef.current) {
             fitAddon.fit();
@@ -64,7 +59,6 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
             resizeObserver.observe(containerRef.current);
         }
 
-        // 6. Focus Tracking (Using correct xterm.js event pattern)
         // @ts-ignore
         if (typeof term.onFocus === 'function') {
             // @ts-ignore
@@ -80,7 +74,7 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
           resizeObserver.disconnect();
         };
       } catch (err) {
-        term.write(`\r\n\x1b[31mError: ${err}\x1b[0m\r\n`);
+        term.write(`Error: ${err}`);
       }
     };
 
@@ -94,22 +88,26 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
       term.dispose();
       cleanup.then(fn => fn && fn());
     };
-  }, [id]);
+  }, [id, theme]); // Refresh xterm theme when global theme changes
 
   return (
     <div 
       className={`terminal-card ${isFocused ? 'focused' : ''}`}
+      onClick={() => terminalInstance.current?.focus()}
       style={{ 
         width: '100%', 
         height: '100%', 
         padding: '0', 
         overflow: 'hidden',
-        display: 'flex'
+        display: 'flex',
+        cursor: 'text',
+        backgroundColor: 'var(--bg-main)',
+        borderRadius: 'var(--radius)',
       }}
     >
       <div 
         ref={containerRef} 
-        style={{ flex: 1, width: '100%', height: '100%' }} 
+        style={{ flex: 1, width: '100%', height: '100%', padding: '10px' }} 
         className="fade-in"
       />
     </div>
