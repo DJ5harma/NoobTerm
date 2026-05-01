@@ -5,6 +5,7 @@ import { useModalStore } from './modalStore';
 import { v4 as uuidv4 } from 'uuid';
 
 export type Workspace = workspace.Workspace;
+export type Command = workspace.Command;
 
 interface WorkspaceState {
   workspaces: Workspace[];
