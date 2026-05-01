@@ -4,8 +4,10 @@ import 'flexlayout-react/style/dark.css';
 import Sidebar from './components/Sidebar';
 import Terminal from './components/Terminal';
 import CommandBar from './components/CommandBar';
+import GlobalModal from './components/GlobalModal';
 import { useWorkspaceStore } from './store';
 import { useThemeStore } from './themeStore';
+import { useModalStore } from './modalStore';
 import { CloseTerminal } from '../wailsjs/go/main/App';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -154,23 +156,30 @@ function App() {
     }
   }, []);
 
-  const handleRename = () => {
+  const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
+
+  const handleRename = async () => {
     if (contextMenu && model) {
-      const newName = prompt("Rename tab:", contextMenu.node.getName());
+      const currentName = contextMenu.node.getName();
+      setContextMenu(null);
+      const newName = await modalPrompt("Rename Tab", "Enter new name for the terminal tab:", currentName);
       if (newName) {
         model.doAction(Actions.renameTab(contextMenu.node.getId(), newName));
         saveLayout();
       }
     }
-    setContextMenu(null);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (contextMenu && model) {
-      model.doAction(Actions.deleteTab(contextMenu.node.getId()));
-      saveLayout();
+      const nodeName = contextMenu.node.getName();
+      setContextMenu(null);
+      const confirmed = await modalConfirm("Delete Tab", `Are you sure you want to close "${nodeName}"?`);
+      if (confirmed) {
+        model.doAction(Actions.deleteTab(contextMenu.node.getId()));
+        saveLayout();
+      }
     }
-    setContextMenu(null);
   };
 
   useEffect(() => {
@@ -244,6 +253,7 @@ function App() {
           </div>
         </div>
       )}
+      <GlobalModal />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkspaceStore, Workspace } from '../store';
 import { useThemeStore, ThemeType } from '../themeStore';
+import { useModalStore } from '../modalStore';
 import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
 
@@ -26,9 +27,11 @@ const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
 
+  const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
+
   const handleCreateWorkspace = async () => {
     if (!createWorkspace) return;
-    const name = prompt('Workspace Name:');
+    const name = await modalPrompt("New Workspace", "Enter a name for your new workspace:");
     if (!name) return;
 
     try {
@@ -38,6 +41,13 @@ const Sidebar: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to select directory:', err);
+    }
+  };
+
+  const handleDeleteWorkspace = async (ws: Workspace) => {
+    const confirmed = await modalConfirm("Delete Workspace", `Are you sure you want to delete "${ws.name}"? This action cannot be undone.`);
+    if (confirmed && deleteWorkspace) {
+      await deleteWorkspace(ws.id);
     }
   };
 
@@ -197,9 +207,7 @@ const Sidebar: React.FC = () => {
                 }} 
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm(`Delete workspace "${ws.name}"?`)) {
-                    deleteWorkspace && deleteWorkspace(ws.id);
-                  }
+                  handleDeleteWorkspace(ws);
                 }} 
               />
             )}
@@ -294,9 +302,7 @@ const Sidebar: React.FC = () => {
           </div>
           <div 
             onClick={() => {
-                if (confirm(`Delete workspace "${contextMenu.workspace.name}"?`)) {
-                    deleteWorkspace && deleteWorkspace(contextMenu.workspace.id);
-                }
+                handleDeleteWorkspace(contextMenu.workspace);
                 setContextMenu(null);
             }}
             style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px', color: '#ff4d4f' }}

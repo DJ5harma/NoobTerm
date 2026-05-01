@@ -1,17 +1,23 @@
 import React, { useState, useMemo } from 'react';
-import { useWorkspaceStore } from '../store';
+import { useWorkspaceStore, Command as CommandType } from '../store';
+import { useModalStore } from '../modalStore';
 import { Command, Plus, Play, ChevronUp, ChevronDown, Terminal as TerminalIcon, Search, MoreVertical, Globe, Download, X, Check } from 'lucide-react';
 import { WriteTerminal } from '../../wailsjs/go/main/App';
+import CommandModal from './CommandModal';
 
 const CommandBar: React.FC = () => {
-  const { workspaces, activeWorkspaceId, activeTerminalId, addCommandToActiveWorkspace, toggleCommandGlobal, importCommands, removeCommand } = useWorkspaceStore();
+  const { workspaces, activeWorkspaceId, activeTerminalId, addCommandToActiveWorkspace, updateCommand, toggleCommandGlobal, importCommands, removeCommand } = useWorkspaceStore();
+  const { alert: modalAlert, confirm: modalConfirm } = useModalStore();
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showCommandModal, setShowCommandModal] = useState(false);
+  const [editingCommand, setEditingCommand] = useState<CommandType | null>(null);
+  
   const [selectedSourceWs, setSelectedSourceWs] = useState<string>('');
   const [selectedCommands, setSelectedCommands] = useState<string[]>([]);
-  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, commandId: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, command: CommandType } | null>(null);
 
   if (!activeWorkspace) return null;
 
@@ -36,22 +42,32 @@ const CommandBar: React.FC = () => {
 
   const handleRunCommand = (cmdStr: string) => {
     if (!activeTerminalId) {
-        alert("Please select or open a terminal first.");
+        modalAlert("Terminal Required", "Please select or open a terminal pane first to run this command.");
         return;
     }
     WriteTerminal(activeTerminalId, cmdStr + '\r');
   };
 
-  const handleAddCommand = async () => {
-    const name = prompt('Command Name (e.g., "Build Project"):');
-    if (!name) return;
-    const cmdStr = prompt('Command (e.g., "npm run build"):');
-    if (!cmdStr) return;
+  const handleAddCommand = () => {
+    setEditingCommand(null);
+    setShowCommandModal(true);
+  };
 
+  const handleEditCommand = (cmd: CommandType) => {
+    setEditingCommand(cmd);
+    setShowCommandModal(true);
+    setContextMenu(null);
+  };
+
+  const handleSaveCommand = async (name: string, cmdStr: string, isGlobal: boolean) => {
     try {
-        await addCommandToActiveWorkspace(name, cmdStr);
+        if (editingCommand) {
+            await updateCommand(editingCommand.id, name, cmdStr, isGlobal);
+        } else {
+            await addCommandToActiveWorkspace(name, cmdStr, isGlobal);
+        }
     } catch (err) {
-        alert("Error adding command: " + err);
+        modalAlert("Error", "Failed to save command: " + err);
     }
   };
 
@@ -61,7 +77,8 @@ const CommandBar: React.FC = () => {
   };
 
   const handleRemoveCommand = async (cmdId: string) => {
-    if (confirm("Remove this command?")) {
+    const confirmed = await modalConfirm("Remove Command", "Are you sure you want to delete this command block?");
+    if (confirmed) {
         await removeCommand(cmdId);
     }
     setContextMenu(null);
@@ -227,7 +244,7 @@ const CommandBar: React.FC = () => {
                 onClick={() => handleRunCommand(cmd.command)}
                 onContextMenu={(e) => {
                     e.preventDefault();
-                    setContextMenu({ x: e.clientX, y: e.clientY, commandId: cmd.id });
+                    setContextMenu({ x: e.clientX, y: e.clientY, command: cmd });
                 }}
                 style={{
                     padding: '12px',
@@ -395,7 +412,16 @@ const CommandBar: React.FC = () => {
           onClick={e => e.stopPropagation()}
         >
           <div 
-            onClick={() => handleToggleGlobal(contextMenu.commandId)}
+            onClick={() => handleEditCommand(contextMenu.command)}
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <Command size={14} />
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>Edit</span>
+          </div>
+          <div 
+            onClick={() => handleToggleGlobal(contextMenu.command.id)}
             style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -404,7 +430,7 @@ const CommandBar: React.FC = () => {
             <span style={{ fontSize: '13px', fontWeight: 600 }}>Toggle Global</span>
           </div>
           <div 
-            onClick={() => handleRemoveCommand(contextMenu.commandId)}
+            onClick={() => handleRemoveCommand(contextMenu.command.id)}
             style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', borderRadius: '4px', color: '#ff4d4f' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -414,6 +440,13 @@ const CommandBar: React.FC = () => {
           </div>
         </div>
       )}
+
+      <CommandModal 
+        isOpen={showCommandModal}
+        onClose={() => setShowCommandModal(false)}
+        onSave={handleSaveCommand}
+        initialData={editingCommand}
+      />
     </div>
   );
 };
