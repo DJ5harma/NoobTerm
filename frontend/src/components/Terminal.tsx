@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 import { useThemeStore } from '../themeStore';
 import { useWorkspaceStore } from '../store';
 import { GetOrCreateTerminal, GetTerminalBuffer, WriteTerminal, ResizeTerminal } from '../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
+import { EventsOn, EventsOff, BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 
 export interface TerminalStats {
   cpu: number;
@@ -49,6 +50,11 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
 
     const fitAddon = new FitAddon();
     xterm.loadAddon(fitAddon);
+
+    xterm.loadAddon(new WebLinksAddon((event, url) => {
+        BrowserOpenURL(url);
+    }));
+
     terminalInstance.current = xterm;
 
     const init = async () => {
