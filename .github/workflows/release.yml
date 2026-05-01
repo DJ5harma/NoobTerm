@@ -65,22 +65,29 @@ jobs:
 
       - name: Prepare Release Files
         run: |
-          mkdir ./release
-          # Linux
-          cp ./artifacts/NoobTerm-linux-amd64/NoobTerm ./release/NoobTerm-linux || true
-          # Windows - look for both standalone and installer
-          find ./artifacts/NoobTerm-windows-amd64 -name "*.exe" -exec cp {} ./release/ \;
-          # macOS
-          find ./artifacts/NoobTerm-darwin-universal -name "*.dmg" -exec cp {} ./release/ \;
-          find ./artifacts/NoobTerm-darwin-universal -name "*.app" -exec cp {} ./release/ \;
+          mkdir -p ./release
+          echo "Dumping artifact structure for debugging:"
+          ls -R ./artifacts
           
-          # Fallback: if names are generic, ensure they are unique
+          # Use a very aggressive find-and-copy approach
+          # Prefix files with platform name to prevent overwriting
+          
+          # Linux
+          find ./artifacts/NoobTerm-linux-amd64 -type f -not -name "*.json" -exec cp -v {} ./release/NoobTerm-Linux \; || true
+          
+          # Windows
+          find ./artifacts/NoobTerm-windows-amd64 -name "*.exe" -exec cp -v {} ./release/ \; || true
+          
+          # macOS
+          find ./artifacts/NoobTerm-darwin-universal -type f -not -name "*.json" -exec cp -v {} ./release/NoobTerm-macOS-Binary \; || true
+          
+          # Ensure Windows files are named uniquely
           cd ./release
-          for f in *; do
-            if [ "$f" == "NoobTerm.exe" ]; then mv "$f" "NoobTerm-windows.exe"; fi
-            if [ "$f" == "NoobTerm-amd64-installer.exe" ]; then mv "$f" "NoobTerm-Installer.exe"; fi
-          done
-          ls -R .
+          if [ -f "NoobTerm.exe" ]; then mv -v "NoobTerm.exe" "NoobTerm-Windows-Standalone.exe"; fi
+          if [ -f "NoobTerm-amd64-installer.exe" ]; then mv -v "NoobTerm-amd64-installer.exe" "NoobTerm-Windows-Installer.exe"; fi
+          
+          echo "Final files in release folder:"
+          ls -lh .
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
