@@ -1,7 +1,7 @@
-import { main } from '../wailsjs/go/models';
+import { workspace } from '../wailsjs/go/models';
 
-export type Workspace = main.Workspace;
-export type Tab = main.Tab;
-export type Pane = main.Pane;
-export type LayoutNode = main.LayoutNode;
-export type Command = main.Command;
+export type Workspace = workspace.Workspace;
+export type Tab = workspace.Tab;
+export type Pane = workspace.Pane;
+export type LayoutNode = workspace.LayoutNode;
+export type Command = workspace.Command;

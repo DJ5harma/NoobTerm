@@ -4,24 +4,27 @@ import (
 	"context"
 	"fmt"
 
+	"NoobTerm/internal/terminal"
+	"NoobTerm/internal/workspace"
+
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
 type App struct {
 	ctx              context.Context
-	terminalManager  *TerminalManager
-	workspaceManager *WorkspaceManager
+	terminalManager  *terminal.Manager
+	workspaceManager *workspace.Manager
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	wm, err := NewWorkspaceManager()
+	wm, err := workspace.NewManager()
 	if err != nil {
 		fmt.Printf("Error creating workspace manager: %v\n", err)
 	}
 	return &App{
-		terminalManager:  NewTerminalManager(),
+		terminalManager:  terminal.NewManager(),
 		workspaceManager: wm,
 	}
 }
@@ -44,47 +47,47 @@ func (a *App) SelectDirectory() (string, error) {
 // Terminal methods
 
 func (a *App) CreateTerminal(cwd string) (string, error) {
-	return a.terminalManager.CreateTerminal(cwd)
+	return a.terminalManager.Create(cwd)
 }
 
 func (a *App) WriteTerminal(id, data string) error {
-	return a.terminalManager.WriteTerminal(id, data)
+	return a.terminalManager.Write(id, data)
 }
 
 func (a *App) ResizeTerminal(id string, cols, rows int) error {
-	return a.terminalManager.ResizeTerminal(id, cols, rows)
+	return a.terminalManager.Resize(id, cols, rows)
 }
 
 func (a *App) CloseTerminal(id string) {
-	a.terminalManager.CloseTerminal(id)
+	a.terminalManager.Close(id)
 }
 
 // Workspace methods
 
-func (a *App) CreateWorkspace(name, path string) (*Workspace, error) {
+func (a *App) CreateWorkspace(name, path string) (*workspace.Workspace, error) {
 	if a.workspaceManager == nil {
 		return nil, fmt.Errorf("workspace manager not initialized")
 	}
-	return a.workspaceManager.CreateWorkspace(name, path)
+	return a.workspaceManager.Create(name, path)
 }
 
-func (a *App) ListWorkspaces() ([]*Workspace, error) {
+func (a *App) ListWorkspaces() ([]*workspace.Workspace, error) {
 	if a.workspaceManager == nil {
-		return []*Workspace{}, fmt.Errorf("workspace manager not initialized")
+		return []*workspace.Workspace{}, fmt.Errorf("workspace manager not initialized")
 	}
-	return a.workspaceManager.ListWorkspaces()
+	return a.workspaceManager.List()
 }
 
-func (a *App) SaveWorkspace(ws *Workspace) error {
+func (a *App) SaveWorkspace(ws *workspace.Workspace) error {
 	if a.workspaceManager == nil {
 		return fmt.Errorf("workspace manager not initialized")
 	}
-	return a.workspaceManager.SaveWorkspace(ws)
+	return a.workspaceManager.Save(ws)
 }
 
 func (a *App) DeleteWorkspace(id string) error {
 	if a.workspaceManager == nil {
 		return fmt.Errorf("workspace manager not initialized")
 	}
-	return a.workspaceManager.DeleteWorkspace(id)
+	return a.workspaceManager.Delete(id)
 }

@@ -1,4 +1,4 @@
-package main
+package terminal
 
 import (
 	"context"
@@ -14,32 +14,32 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-type TerminalSession struct {
+type Session struct {
 	ID   string
 	PTY  pty.Pty
 	Cmd  *pty.Cmd
 	Quit chan struct{}
 }
 
-type TerminalManager struct {
-	sessions map[string]*TerminalSession
+type Manager struct {
+	sessions map[string]*Session
 	mu       sync.Mutex
 	ctx      context.Context
 }
 
-func NewTerminalManager() *TerminalManager {
-	return &TerminalManager{
-		sessions: make(map[string]*TerminalSession),
+func NewManager() *Manager {
+	return &Manager{
+		sessions: make(map[string]*Session),
 	}
 }
 
-func (tm *TerminalManager) SetContext(ctx context.Context) {
-	tm.ctx = ctx
+func (m *Manager) SetContext(ctx context.Context) {
+	m.ctx = ctx
 }
 
-func (tm *TerminalManager) CreateTerminal(cwd string) (string, error) {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
+func (m *Manager) Create(cwd string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	p, err := pty.New()
 	if err != nil {
@@ -72,22 +72,22 @@ func (tm *TerminalManager) CreateTerminal(cwd string) (string, error) {
 	}
 
 	id := uuid.New().String()
-	session := &TerminalSession{
+	session := &Session{
 		ID:   id,
 		PTY:  p,
 		Cmd:  cmd,
 		Quit: make(chan struct{}),
 	}
 
-	tm.sessions[id] = session
+	m.sessions[id] = session
 
 	// Read output in a goroutine
-	go tm.readOutput(session)
+	go m.readOutput(session)
 
 	return id, nil
 }
 
-func (tm *TerminalManager) readOutput(session *TerminalSession) {
+func (m *Manager) readOutput(session *Session) {
 	buf := make([]byte, 1024*10)
 	for {
 		select {
@@ -97,23 +97,23 @@ func (tm *TerminalManager) readOutput(session *TerminalSession) {
 			n, err := session.PTY.Read(buf)
 			if n > 0 {
 				// Emit event to frontend
-				wailsRuntime.EventsEmit(tm.ctx, "terminal-output-"+session.ID, string(buf[:n]))
+				wailsRuntime.EventsEmit(m.ctx, "terminal-output-"+session.ID, string(buf[:n]))
 			}
 			if err != nil {
 				if err != io.EOF {
 					log.Printf("Terminal %s read error: %v", session.ID, err)
 				}
-				tm.CloseTerminal(session.ID)
+				m.Close(session.ID)
 				return
 			}
 		}
 	}
 }
 
-func (tm *TerminalManager) WriteTerminal(id, data string) error {
-	tm.mu.Lock()
-	session, ok := tm.sessions[id]
-	tm.mu.Unlock()
+func (m *Manager) Write(id, data string) error {
+	m.mu.Lock()
+	session, ok := m.sessions[id]
+	m.mu.Unlock()
 
 	if !ok {
 		return nil
@@ -123,10 +123,10 @@ func (tm *TerminalManager) WriteTerminal(id, data string) error {
 	return err
 }
 
-func (tm *TerminalManager) ResizeTerminal(id string, cols, rows int) error {
-	tm.mu.Lock()
-	session, ok := tm.sessions[id]
-	tm.mu.Unlock()
+func (m *Manager) Resize(id string, cols, rows int) error {
+	m.mu.Lock()
+	session, ok := m.sessions[id]
+	m.mu.Unlock()
 
 	if !ok {
 		return nil
@@ -135,15 +135,15 @@ func (tm *TerminalManager) ResizeTerminal(id string, cols, rows int) error {
 	return session.PTY.Resize(cols, rows)
 }
 
-func (tm *TerminalManager) CloseTerminal(id string) {
-	tm.mu.Lock()
-	session, ok := tm.sessions[id]
+func (m *Manager) Close(id string) {
+	m.mu.Lock()
+	session, ok := m.sessions[id]
 	if !ok {
-		tm.mu.Unlock()
+		m.mu.Unlock()
 		return
 	}
-	delete(tm.sessions, id)
-	tm.mu.Unlock()
+	delete(m.sessions, id)
+	m.mu.Unlock()
 
 	close(session.Quit)
 	session.PTY.Close()
@@ -151,5 +151,5 @@ func (tm *TerminalManager) CloseTerminal(id string) {
 		session.Cmd.Process.Kill()
 	}
 	// Notify frontend that terminal is closed
-	wailsRuntime.EventsEmit(tm.ctx, "terminal-closed-"+id, nil)
+	wailsRuntime.EventsEmit(m.ctx, "terminal-closed-"+id, nil)
 }

@@ -1,13 +1,13 @@
 import { create } from 'zustand';
-import { main } from '../wailsjs/go/models';
+import { workspace } from '../wailsjs/go/models';
 import { v4 as uuidv4 } from 'uuid';
 import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace } from '../wailsjs/go/main/App';
 
-type Workspace = main.Workspace;
-type Tab = main.Tab;
-type Pane = main.Pane;
-type LayoutNode = main.LayoutNode;
-type Command = main.Command;
+type Workspace = workspace.Workspace;
+type Tab = workspace.Tab;
+type Pane = workspace.Pane;
+type LayoutNode = workspace.LayoutNode;
+type Command = workspace.Command;
 
 interface WorkspaceState {
   workspaces: Workspace[];
