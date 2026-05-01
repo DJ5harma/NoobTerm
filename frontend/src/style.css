@@ -1,113 +1,123 @@
 :root {
-  /* Common */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 /* NORMAL THEME */
 [data-theme='normal'] {
-  --bg-main: #1e1e1e;
-  --bg-sidebar: #252526;
-  --bg-header: #2d2d2d;
-  --bg-active: #37373d;
+  --bg-main: #1a1a1a;
+  --bg-sidebar: #222222;
+  --bg-header: #2a2a2a;
+  --bg-active: #333333;
   --accent: #007acc;
-  --accent-glow: rgba(0, 122, 204, 0.5);
   --text-main: #cccccc;
   --text-bright: #ffffff;
-  --border: #333333;
-  --radius: 4px;
+  --border: #3a3a3a;
+  --radius: 6px;
 }
 
-/* PRO THEME - Ultra Black & Sharp */
+/* PRO THEME */
 [data-theme='pro'] {
   --bg-main: #000000;
-  --bg-sidebar: #0a0a0a;
-  --bg-header: #0f0f0f;
-  --bg-active: #1a1a1a;
+  --bg-sidebar: #050505;
+  --bg-header: #080808;
+  --bg-active: #151515;
   --accent: #ffffff;
-  --accent-glow: rgba(255, 255, 255, 0.3);
-  --text-main: #999999;
+  --text-main: #888888;
   --text-bright: #ffffff;
   --border: #222222;
   --radius: 0px;
 }
 
-/* JOY THEME - Vibrant & Playful */
-[data-theme='joy'] {
-  --bg-main: #2d1b4e;
-  --bg-sidebar: #3d2666;
-  --bg-header: #4a2d7c;
-  --bg-active: #ff007f;
-  --accent: #39ff14;
-  --accent-glow: rgba(57, 255, 20, 0.8);
-  --text-main: #e0def4;
-  --text-bright: #ffffff;
-  --border: #ff007f;
+/* LIGHT FUN THEME - Sunny Playground */
+[data-theme='lightfun'] {
+  --bg-main: #ffffff;
+  --bg-sidebar: #f0f4f8;
+  --bg-header: #d9e2ec;
+  --bg-active: #ff4785;
+  --accent: #ff4785;
+  --text-main: #243b53;
+  --text-bright: #102a43;
+  --border: #bcccdc;
   --radius: 20px;
   --font-sans: 'Quicksand', sans-serif;
 }
 
+/* JOY THEME - Playful Dark (Vibrant Purple & Neon) */
+[data-theme='joy'] {
+  --bg-main: #1e1e2e;
+  --bg-sidebar: #181825;
+  --bg-header: #11111b;
+  --bg-active: #cba6f7;
+  --accent: #fab387; /* Warm Peach */
+  --text-main: #cdd6f4;
+  --text-bright: #ffffff;
+  --border: #313244;
+  --radius: 16px;
+  --font-sans: 'Inter', sans-serif;
+}
+
 html, body, #root {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
+  height: 100%; width: 100%; margin: 0; padding: 0;
   background-color: var(--bg-main);
   color: var(--text-main);
   font-family: var(--font-sans);
   overflow: hidden;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-* {
-  box-sizing: border-box;
-  outline: none !important;
-}
+* { box-sizing: border-box; }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--bg-main); }
-::-webkit-scrollbar-thumb { 
-  background: var(--border); 
-  border-radius: var(--radius); 
-}
-
-/* FlexLayout Overrides */
-.flexlayout__layout { background-color: var(--bg-main); }
-.flexlayout__tabset_header { 
-  background-color: var(--bg-header) !important; 
-  border-bottom: 1px solid var(--border);
-  border-radius: var(--radius) var(--radius) 0 0 !important;
-}
-.flexlayout__tab_button {
-  background-color: transparent !important;
-  color: var(--text-main) !important;
-  padding: 6px 16px !important;
-  border-radius: var(--radius) var(--radius) 0 0 !important;
-  transition: all 0.2s !important;
-}
-.flexlayout__tab_button--selected {
-  background-color: var(--bg-main) !important;
-  color: var(--text-bright) !important;
-  border-top: 3px solid var(--accent) !important;
-}
-.flexlayout__splitter { background-color: var(--border) !important; }
-
-/* Terminal Card & FOCUS HIGHLIGHT */
+/* THE DEFINITIVE FOCUS HIGHLIGHT - USING OUTLINE TO BE ALWAYS VISIBLE */
 .terminal-card {
   width: 100%;
   height: 100%;
   background-color: var(--bg-main);
   border-radius: var(--radius);
-  border: 4px solid transparent;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 8px;
+  transition: all 0.15s ease-out;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--border); /* Small base border */
 }
 
+/* THE SELECTION - HIGH INTENSITY NEON GREEN */
 .terminal-card.focused {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 25px var(--accent-glow) !important;
+  outline: 6px solid #39ff14 !important; /* ULTRA NEON GREEN OUTLINE */
+  outline-offset: -6px;
+  box-shadow: 0 0 40px rgba(57, 255, 20, 0.6) !important;
+  z-index: 9999 !important;
   transform: scale(0.99);
+}
+
+/* FlexLayout DEEP THEMING */
+.flexlayout__layout { background-color: var(--bg-main); }
+
+.flexlayout__tabset_header, 
+.flexlayout__tabset_header_inner,
+.flexlayout__tabset_tab_divider {
+  background-color: var(--bg-header) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.flexlayout__tab_button {
+  background-color: var(--bg-header) !important;
+  color: var(--text-main) !important;
+  border: none !important;
+}
+
+.flexlayout__tab_button--selected {
+  background-color: var(--bg-main) !important;
+  color: var(--text-bright) !important;
+  border-top: 3px solid var(--accent) !important;
+}
+
+.flexlayout__tabset { background-color: var(--bg-main) !important; }
+
+/* Sidebar */
+.workspace-item.active {
+    border: 2px solid var(--accent) !important;
+    background-color: var(--bg-active) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
 }
 
 .fade-in { animation: fadeIn 0.3s ease-out; }
@@ -117,30 +127,24 @@ html, body, #root {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.85);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 10000;
 }
 .modal-content {
   background: var(--bg-sidebar);
   padding: 30px;
   border-radius: var(--radius);
   border: 2px solid var(--border);
-  min-width: 400px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  min-width: 450px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
 }
 .theme-option {
-  padding: 15px;
-  margin: 10px 0;
-  border-radius: var(--radius);
-  cursor: pointer;
-  border: 2px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: bold;
+  padding: 16px; margin: 8px 0; border-radius: var(--radius);
+  cursor: pointer; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
   transition: all 0.2s;
 }
 .theme-option:hover { background: var(--bg-active); }

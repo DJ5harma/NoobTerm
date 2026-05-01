@@ -7,9 +7,11 @@ type Workspace = workspace.Workspace;
 interface WorkspaceState {
   workspaces: Workspace[];
   activeWorkspaceId: string | null;
+  activeTerminalId: string | null;
 
   fetchWorkspaces: () => Promise<void>;
   setActiveWorkspace: (id: string | null) => void;
+  setActiveTerminal: (id: string | null) => void;
   
   createWorkspace: (name: string, path: string) => Promise<void>;
   saveWorkspace: (ws: Workspace) => Promise<void>;
@@ -44,6 +46,7 @@ const DEFAULT_LAYOUT = JSON.stringify({
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspaces: [],
   activeWorkspaceId: null,
+  activeTerminalId: null,
 
   fetchWorkspaces: async () => {
     try {
@@ -67,6 +70,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
+
+  setActiveTerminal: (id) => set({ activeTerminalId: id }),
 
   createWorkspace: async (name, path) => {
     const ws = await CreateWorkspace(name, path);

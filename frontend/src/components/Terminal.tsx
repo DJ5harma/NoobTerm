@@ -5,6 +5,7 @@ import '@xterm/xterm/css/xterm.css';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 import { CreateTerminal, WriteTerminal, ResizeTerminal, CloseTerminal } from '../../wailsjs/go/main/App';
 import { useThemeStore } from '../themeStore';
+import { useWorkspaceStore } from '../store';
 
 interface TerminalProps {
   id: string; 
@@ -14,8 +15,10 @@ interface TerminalProps {
 const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalInstance = useRef<XTerm | null>(null);
-  const [isFocused, setIsFocused] = useState(false);
   const { theme } = useThemeStore();
+  const { activeTerminalId, setActiveTerminal } = useWorkspaceStore();
+  
+  const isFocused = activeTerminalId === id;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -25,8 +28,8 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
       fontSize: 14,
       fontFamily: 'var(--font-mono)',
       theme: {
-        background: theme === 'pro' ? '#000000' : (theme === 'joy' ? '#2d1b4e' : '#1e1e1e'),
-        foreground: '#a9b1d6',
+        background: theme === 'pro' ? '#000000' : (theme === 'lightfun' ? '#ffffff' : (theme === 'joy' ? '#1e1e2e' : '#1a1a1a')),
+        foreground: (theme === 'lightfun') ? '#243b53' : '#cdd6f4',
         cursor: 'var(--accent)',
       },
       allowTransparency: true,
@@ -59,15 +62,11 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
             resizeObserver.observe(containerRef.current);
         }
 
+        // Setup focus listeners using correct xterm.js API
         // @ts-ignore
         if (typeof term.onFocus === 'function') {
             // @ts-ignore
-            term.onFocus(() => setIsFocused(true));
-        }
-        // @ts-ignore
-        if (typeof term.onBlur === 'function') {
-            // @ts-ignore
-            term.onBlur(() => setIsFocused(false));
+            term.onFocus(() => setActiveTerminal(id));
         }
 
         return () => {
@@ -88,26 +87,30 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
       term.dispose();
       cleanup.then(fn => fn && fn());
     };
-  }, [id, theme]); // Refresh xterm theme when global theme changes
+  }, [id, theme]);
 
   return (
     <div 
       className={`terminal-card ${isFocused ? 'focused' : ''}`}
-      onClick={() => terminalInstance.current?.focus()}
+      onMouseDown={(e) => {
+          e.stopPropagation();
+          setActiveTerminal(id);
+          terminalInstance.current?.focus();
+      }}
       style={{ 
-        width: '100%', 
-        height: '100%', 
-        padding: '0', 
-        overflow: 'hidden',
-        display: 'flex',
         cursor: 'text',
+        display: 'flex',
+        flexDirection: 'column',
         backgroundColor: 'var(--bg-main)',
         borderRadius: 'var(--radius)',
+        height: '100%',
+        width: '100%',
+        boxSizing: 'border-box'
       }}
     >
       <div 
         ref={containerRef} 
-        style={{ flex: 1, width: '100%', height: '100%', padding: '10px' }} 
+        style={{ flex: 1, width: '100%', height: '100%', padding: '10px', boxSizing: 'border-box' }} 
         className="fade-in"
       />
     </div>

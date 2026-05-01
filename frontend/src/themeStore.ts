@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ThemeType = 'joy' | 'pro' | 'normal';
+export type ThemeType = 'joy' | 'lightfun' | 'pro' | 'normal';
 
 interface ThemeState {
   theme: ThemeType;
@@ -15,7 +15,7 @@ export const useThemeStore = create<ThemeState>()(
       setTheme: (theme) => set({ theme }),
     }),
     {
-      name: 'termspace-theme',
+      name: 'termspace-theme-v2',
     }
   )
 );
