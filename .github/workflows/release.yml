@@ -6,104 +6,111 @@ on:
       - main
     tags:
       - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build - ${{ matrix.platform }}
+    name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'linux/amd64'
-            os: 'ubuntu-latest'
-            artifact-name: 'linux'
-          - platform: 'windows/amd64'
-            os: 'windows-latest'
-            artifact-name: 'windows'
-          - platform: 'darwin/universal'
-            os: 'macos-latest'
-            artifact-name: 'macos'
+          - os: windows-latest
+            platform: windows/amd64
+            artifact-name: NoobTerm-Windows
+          - os: ubuntu-latest
+            platform: linux/amd64
+            artifact-name: NoobTerm-Linux
+          - os: macos-latest
+            platform: darwin/universal
+            artifact-name: NoobTerm-macOS
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Wails App
-        uses: dAppServer/wails-build-action@main
-        id: build
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          build-name: NoobTerm
-          build-platform: ${{ matrix.platform }}
-          go-version: '1.23.0'
-          node-version: '20'
-          package: false
-          # For Windows, we want the NSIS installer
-          nsis: ${{ matrix.platform == 'windows/amd64' }}
+          go-version: '1.23'
 
-      # Prepare artifacts with proper naming and compression
-      - name: Package Artifacts (Windows)
-        if: matrix.platform == 'windows/amd64'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install Linux Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential
+
+      - name: Build Wails App (Windows)
+        if: runner.os == 'Windows'
+        run: wails build -platform windows/amd64 -clean -nsis
+
+      - name: Build Wails App (Linux)
+        if: runner.os == 'Linux'
+        run: wails build -platform linux/amd64 -clean
+
+      - name: Build Wails App (macOS)
+        if: runner.os == 'macOS'
+        run: wails build -platform darwin/universal -clean
+
+      - name: Prepare Artifacts (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          mkdir release-stage
-          cp build/bin/*.exe release-stage/
-          ls release-stage
+          mkdir release
+          # Copies both the standalone NoobTerm.exe and the NSIS installer NoobTerm-amd64-installer.exe
+          Copy-Item build\bin\*.exe release\
 
-      - name: Package Artifacts (Linux)
-        if: matrix.platform == 'linux/amd64'
+      - name: Prepare Artifacts (Linux)
+        if: runner.os == 'Linux'
         run: |
-          mkdir release-stage
-          cp build/bin/NoobTerm release-stage/NoobTerm-linux
-          chmod +x release-stage/NoobTerm-linux
-          ls release-stage
+          mkdir release
+          mv build/bin/NoobTerm release/NoobTerm-linux-amd64
+          chmod +x release/NoobTerm-linux-amd64
+          # Standard practice is to distribute linux binaries in a tarball
+          tar -czvf release/NoobTerm-Linux-amd64.tar.gz -C release NoobTerm-linux-amd64
+          rm release/NoobTerm-linux-amd64
 
-      - name: Package Artifacts (macOS)
-        if: matrix.platform == 'darwin/universal'
+      - name: Prepare Artifacts (macOS)
+        if: runner.os == 'macOS'
         run: |
-          mkdir release-stage
-          # macOS .app is a directory, must be zipped for release
+          mkdir release
           cd build/bin
-          zip -r ../../release-stage/NoobTerm-macOS.zip NoobTerm.app
-          cd ../..
-          ls release-stage
+          # macOS applications must be zipped to preserve internal permissions and structure
+          zip -r ../../release/NoobTerm-macOS-universal.zip NoobTerm.app
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NoobTerm-binaries-${{ matrix.artifact-name }}
-          path: release-stage/*
+          name: ${{ matrix.artifact-name }}
+          path: release/*
+          if-no-files-found: error
 
   release:
-    name: Create Release
+    name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
-    
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./artifacts
+          path: artifacts
+          merge-multiple: true
 
-      - name: Prepare Release Files
-        run: |
-          mkdir ./release-final
-          # Find all files in all downloaded artifact folders and move to a flat folder
-          find ./artifacts -type f -exec cp -v {} ./release-final/ \;
-          echo "Release folder contents:"
-          ls -lh ./release-final
-
-      - name: Create Release
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref == 'refs/heads/main' && 'latest' || github.ref_name }}
-          name: ${{ github.ref == 'refs/heads/main' && 'Latest Build' || github.ref_name }}
-          draft: false
-          prerelease: ${{ github.ref == 'refs/heads/main' }}
-          files: ./release-final/*
+          files: artifacts/*
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
