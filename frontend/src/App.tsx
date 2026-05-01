@@ -32,7 +32,7 @@ interface ContextMenu {
 
 function App() {
   const { theme } = useThemeStore();
-  const { workspaces, activeWorkspaceId, fetchWorkspaces, setActiveWorkspace, updateActiveWorkspaceLayout } = useWorkspaceStore();
+  const { workspaces, activeWorkspaceId, fetchWorkspaces, setActiveWorkspace, setActiveTerminal, updateActiveWorkspaceLayout } = useWorkspaceStore();
   const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
   
   // Custom Hooks
@@ -142,6 +142,16 @@ function App() {
   }, [saveLayout]);
 
   const onAction = useCallback((action: Action) => {
+    if (action.type === Actions.SELECT_TAB) {
+      const nodeId = action.data.tabNode;
+      const node = model?.getNodeById(nodeId) as TabNode;
+      if (node && node.getComponent() === 'terminal') {
+        const config = node.getConfig();
+        if (config?.id) {
+            setActiveTerminal(config.id);
+        }
+      }
+    }
     if (action.type === Actions.DELETE_TAB) {
       const nodeId = (action.data as any).node;
       const node = model?.getNodeById(nodeId) as TabNode;

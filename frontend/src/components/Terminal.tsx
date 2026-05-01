@@ -151,8 +151,18 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
   }, [theme]);
 
   return (
-    <div style={{ width: '100%', height: '100%', backgroundColor: getTerminalTheme(theme).background }}>
-        <div ref={containerRef} style={{ width: '100%', height: '100%', padding: '10px' }} />
+    <div 
+        onMouseDown={() => setActiveTerminal(id)}
+        style={{ 
+            width: '100%', 
+            height: '100%', 
+            backgroundColor: getTerminalTheme(theme).background,
+            border: `3px solid ${isFocused ? 'var(--accent)' : 'transparent'}`,
+            boxSizing: 'border-box',
+            transition: 'border-color 0.15s ease'
+        }}
+    >
+        <div ref={containerRef} style={{ width: '100%', height: '100%', padding: '10px', boxSizing: 'border-box' }} />
     </div>
   );
 };
