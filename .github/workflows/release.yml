@@ -17,13 +17,13 @@ jobs:
         include:
           - platform: 'linux/amd64'
             os: 'ubuntu-latest'
-            artifact-name: 'linux-amd64'
+            artifact-name: 'linux'
           - platform: 'windows/amd64'
             os: 'windows-latest'
-            artifact-name: 'windows-amd64'
+            artifact-name: 'windows'
           - platform: 'darwin/universal'
             os: 'macos-latest'
-            artifact-name: 'darwin-universal'
+            artifact-name: 'macos'
 
     steps:
       - name: Checkout
@@ -41,13 +41,38 @@ jobs:
           # For Windows, we want the NSIS installer
           nsis: ${{ matrix.platform == 'windows/amd64' }}
 
+      # Prepare artifacts with proper naming and compression
+      - name: Package Artifacts (Windows)
+        if: matrix.platform == 'windows/amd64'
+        shell: pwsh
+        run: |
+          mkdir release-stage
+          cp build/bin/*.exe release-stage/
+          ls release-stage
+
+      - name: Package Artifacts (Linux)
+        if: matrix.platform == 'linux/amd64'
+        run: |
+          mkdir release-stage
+          cp build/bin/NoobTerm release-stage/NoobTerm-linux
+          chmod +x release-stage/NoobTerm-linux
+          ls release-stage
+
+      - name: Package Artifacts (macOS)
+        if: matrix.platform == 'darwin/universal'
+        run: |
+          mkdir release-stage
+          # macOS .app is a directory, must be zipped for release
+          cd build/bin
+          zip -r ../../release-stage/NoobTerm-macOS.zip NoobTerm.app
+          cd ../..
+          ls release-stage
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NoobTerm-${{ matrix.artifact-name }}
-          path: |
-            build/bin/*
-            build/windows/installer/*.exe
+          name: NoobTerm-binaries-${{ matrix.artifact-name }}
+          path: release-stage/*
 
   release:
     name: Create Release
@@ -65,29 +90,11 @@ jobs:
 
       - name: Prepare Release Files
         run: |
-          mkdir -p ./release
-          echo "Dumping artifact structure for debugging:"
-          ls -R ./artifacts
-          
-          # Use a very aggressive find-and-copy approach
-          # Prefix files with platform name to prevent overwriting
-          
-          # Linux
-          find ./artifacts/NoobTerm-linux-amd64 -type f -not -name "*.json" -exec cp -v {} ./release/NoobTerm-Linux \; || true
-          
-          # Windows
-          find ./artifacts/NoobTerm-windows-amd64 -name "*.exe" -exec cp -v {} ./release/ \; || true
-          
-          # macOS
-          find ./artifacts/NoobTerm-darwin-universal -type f -not -name "*.json" -exec cp -v {} ./release/NoobTerm-macOS-Binary \; || true
-          
-          # Ensure Windows files are named uniquely
-          cd ./release
-          if [ -f "NoobTerm.exe" ]; then mv -v "NoobTerm.exe" "NoobTerm-Windows-Standalone.exe"; fi
-          if [ -f "NoobTerm-amd64-installer.exe" ]; then mv -v "NoobTerm-amd64-installer.exe" "NoobTerm-Windows-Installer.exe"; fi
-          
-          echo "Final files in release folder:"
-          ls -lh .
+          mkdir ./release-final
+          # Find all files in all downloaded artifact folders and move to a flat folder
+          find ./artifacts -type f -exec cp -v {} ./release-final/ \;
+          echo "Release folder contents:"
+          ls -lh ./release-final
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -96,7 +103,7 @@ jobs:
           name: ${{ github.ref == 'refs/heads/main' && 'Latest Build' || github.ref_name }}
           draft: false
           prerelease: ${{ github.ref == 'refs/heads/main' }}
-          files: ./release/*
+          files: ./release-final/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

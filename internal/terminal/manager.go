@@ -103,6 +103,10 @@ func (m *Manager) monitorStats(session *Session) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
+	var lastCPU float64
+	var lastMem uint64
+	var lastStatus string
+
 	for {
 		select {
 		case <-session.Quit:
@@ -112,23 +116,28 @@ func (m *Manager) monitorStats(session *Session) {
 				continue
 			}
 
-			stats := TerminalStats{
-				Status: "running",
-			}
-
 			// Try to get process info
 			p, err := process.NewProcess(int32(session.Cmd.Process.Pid))
 			if err != nil {
-				stats.Status = "crashed"
-				wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, stats)
+				if lastStatus != "crashed" {
+					lastStatus = "crashed"
+					wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, TerminalStats{Status: "crashed"})
+				}
 				return
 			}
 
 			// Check if shell exited
-			if ok, _ := p.IsRunning(); !ok {
-				stats.Status = "exited"
-				wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, stats)
+			isRunning, _ := p.IsRunning()
+			if !isRunning {
+				if lastStatus != "exited" {
+					lastStatus = "exited"
+					wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, TerminalStats{Status: "exited"})
+				}
 				return
+			}
+
+			stats := TerminalStats{
+				Status: "running",
 			}
 
 			// Get CPU and Memory
@@ -143,6 +152,9 @@ func (m *Manager) monitorStats(session *Session) {
 			// Also sum up children resources
 			children, _ := p.Children()
 			for _, child := range children {
+				if childIsRunning, _ := child.IsRunning(); !childIsRunning {
+					continue
+				}
 				childCPU, _ := child.CPUPercent()
 				childMem, _ := child.MemoryInfo()
 				stats.CPU += childCPU
@@ -151,7 +163,26 @@ func (m *Manager) monitorStats(session *Session) {
 				}
 			}
 
-			wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, stats)
+			// Only emit if status changed or stats changed significantly
+			// Threshold: 0.5% CPU change or 1MB memory change
+			memDiff := uint64(0)
+			if stats.Memory > lastMem {
+				memDiff = stats.Memory - lastMem
+			} else {
+				memDiff = lastMem - stats.Memory
+			}
+
+			cpuDiff := stats.CPU - lastCPU
+			if cpuDiff < 0 {
+				cpuDiff = -cpuDiff
+			}
+
+			if stats.Status != lastStatus || cpuDiff > 0.5 || memDiff > 1024*1024 {
+				wailsRuntime.EventsEmit(m.ctx, "terminal-stats-"+session.ID, stats)
+				lastCPU = stats.CPU
+				lastMem = stats.Memory
+				lastStatus = stats.Status
+			}
 		}
 	}
 }
