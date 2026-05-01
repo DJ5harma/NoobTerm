@@ -66,8 +66,21 @@ jobs:
       - name: Prepare Release Files
         run: |
           mkdir ./release
-          find ./artifacts -type f \( -name "*.exe" -o -name "*.deb" -o -name "*.app" -o -name "*.dmg" -o -name "NoobTerm" \) -exec cp {} ./release/ \;
-          ls -R ./release
+          # Linux
+          cp ./artifacts/NoobTerm-linux-amd64/NoobTerm ./release/NoobTerm-linux || true
+          # Windows - look for both standalone and installer
+          find ./artifacts/NoobTerm-windows-amd64 -name "*.exe" -exec cp {} ./release/ \;
+          # macOS
+          find ./artifacts/NoobTerm-darwin-universal -name "*.dmg" -exec cp {} ./release/ \;
+          find ./artifacts/NoobTerm-darwin-universal -name "*.app" -exec cp {} ./release/ \;
+          
+          # Fallback: if names are generic, ensure they are unique
+          cd ./release
+          for f in *; do
+            if [ "$f" == "NoobTerm.exe" ]; then mv "$f" "NoobTerm-windows.exe"; fi
+            if [ "$f" == "NoobTerm-amd64-installer.exe" ]; then mv "$f" "NoobTerm-Installer.exe"; fi
+          done
+          ls -R .
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
