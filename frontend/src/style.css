@@ -54,11 +54,50 @@ html, body, #root {
   background-color: var(--bg-main);
   color: var(--text-main);
   font-family: var(--font-sans);
-  overflow: hidden;
+  overflow: hidden !important; /* Force hide browser scrollbars */
   transition: background-color 0.3s ease;
 }
 
 * { box-sizing: border-box; outline: none !important; }
+
+/* THE FLICKER KILLER: Aggressive global scrollbar suppression */
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+* {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE/Edge */
+}
+
+html, body, #root {
+  height: 100%; width: 100%; margin: 0; padding: 0;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  overflow: hidden !important; 
+  transition: background-color 0.3s ease;
+}
+
+* { box-sizing: border-box; outline: none !important; }
+
+/* Ensure the layout engines don't try to show bars during resize calculations */
+.flexlayout__layout,
+.flexlayout__tab,
+.flexlayout__tabset,
+.flexlayout__tabset_content {
+  overflow: hidden !important;
+}
+
+/* Areas that actually need scrolling (will work via mouse-wheel, but bars remain hidden) */
+.sidebar, 
+.modal-content, 
+.command-bar.expanded,
+.xterm-viewport {
+    overflow-y: auto !important;
+}
 
 /* FLEXLAYOUT FULL THEMING */
 .flexlayout__layout { 
@@ -107,19 +146,17 @@ html, body, #root {
   height: 100%;
   background-color: var(--bg-main);
   border-radius: var(--radius);
-  border: 4px solid var(--border); /* Base border always present */
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
+  overflow: hidden !important;
 }
 
 /* THE SELECTION - UNMISTAKABLE 4PX OUTLINE */
 .terminal-card.focused {
-  outline: 4px solid var(--focus-color) !important;
-  outline-offset: -4px;
-  box-shadow: 0 0 40px var(--focus-glow), inset 0 0 20px var(--focus-glow) !important;
+  border: 2px solid var(--accent) !important;
   z-index: 1000 !important;
 }
+
 
 /* Sidebar Styling */
 .workspace-item.active {
