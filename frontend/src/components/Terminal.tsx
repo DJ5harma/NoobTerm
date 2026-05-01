@@ -6,98 +6,112 @@ import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 import { CreateTerminal, WriteTerminal, ResizeTerminal, CloseTerminal } from '../../wailsjs/go/main/App';
 
 interface TerminalProps {
-  id: string;
+  id: string; 
   cwd?: string;
 }
 
-const terminalCache: Record<string, {
-  backendId: string;
-  xterm: XTerm;
-  fitAddon: FitAddon;
-}> = {};
-
-export const closeTerminalSession = (id: string) => {
-  const cache = terminalCache[id];
-  if (cache) {
-    EventsOff(`terminal-output-${cache.backendId}`);
-    CloseTerminal(cache.backendId);
-    cache.xterm.dispose();
-    delete terminalCache[id];
-  }
-};
-
 const Terminal: React.FC<TerminalProps> = ({ id, cwd }) => {
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const isInitialized = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const terminalInstance = useRef<XTerm | null>(null);
   const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    if (!terminalRef.current) return;
-    if (isInitialized.current) return;
+    if (!containerRef.current) return;
 
-    const setupTerminal = async () => {
-      let cache = terminalCache[id];
+    // 1. Initialize Terminal
+    const term = new XTerm({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'var(--font-mono)',
+      theme: {
+        background: '#1a1b26',
+        foreground: '#a9b1d6',
+        cursor: '#7aa2f7',
+      },
+      allowTransparency: true,
+      convertEol: true,
+    });
 
-      if (!cache) {
-        const term = new XTerm({
-          cursorBlink: true,
-          fontSize: 14,
-          fontFamily: 'var(--font-mono)',
-          theme: {
-            background: '#1a1b26',
-            foreground: '#a9b1d6',
-            cursor: '#7aa2f7',
-          },
-          allowTransparency: true,
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+    terminalInstance.current = term;
+
+    let backendId = "";
+
+    const init = async () => {
+      try {
+        // 2. Create Backend PTY
+        backendId = await CreateTerminal(cwd || '');
+        
+        // 3. Connect I/O
+        term.onData(data => WriteTerminal(backendId, data));
+        EventsOn(`terminal-output-${backendId}`, (data: string) => term.write(data));
+
+        // 4. Mount to DOM
+        term.open(containerRef.current!);
+        
+        // 5. Setup Auto-Resize using ResizeObserver
+        const resizeObserver = new ResizeObserver(() => {
+          if (containerRef.current) {
+            fitAddon.fit();
+            if (backendId) {
+              ResizeTerminal(backendId, term.cols, term.rows);
+            }
+          }
         });
 
-        const fitAddon = new FitAddon();
-        term.loadAddon(fitAddon);
-
-        try {
-          const backendId = await CreateTerminal(cwd || '');
-          term.onData((data) => WriteTerminal(backendId, data));
-          EventsOn(`terminal-output-${backendId}`, (data: string) => term.write(data));
-          cache = { backendId, xterm: term, fitAddon };
-          terminalCache[id] = cache;
-        } catch (err) {
-          term.write(`Error: ${err}`);
-          return;
+        if (containerRef.current) {
+            resizeObserver.observe(containerRef.current);
         }
-      }
 
-      cache.xterm.open(terminalRef.current!);
-      
-      // Use standard JS focus/blur on the container to detect activity
-      const container = terminalRef.current;
-      if (container) {
-        const handleFocusIn = () => setIsFocused(true);
-        const handleFocusOut = () => setIsFocused(false);
-        container.addEventListener('focusin', handleFocusIn);
-        container.addEventListener('focusout', handleFocusOut);
-        
-        // Also listen to xterm's internal textarea
-        const textarea = container.querySelector('.xterm-helper-textarea');
-        if (textarea) {
-            textarea.addEventListener('focus', handleFocusIn);
-            textarea.addEventListener('blur', handleFocusOut);
+        // 6. Focus Tracking (Using correct xterm.js event pattern)
+        // @ts-ignore
+        if (typeof term.onFocus === 'function') {
+            // @ts-ignore
+            term.onFocus(() => setIsFocused(true));
         }
+        // @ts-ignore
+        if (typeof term.onBlur === 'function') {
+            // @ts-ignore
+            term.onBlur(() => setIsFocused(false));
+        }
+
+        return () => {
+          resizeObserver.disconnect();
+        };
+      } catch (err) {
+        term.write(`\r\n\x1b[31mError: ${err}\x1b[0m\r\n`);
       }
-
-      setTimeout(() => {
-        cache.fitAddon.fit();
-        ResizeTerminal(cache.backendId, cache.xterm.cols, cache.xterm.rows);
-      }, 50);
-
-      isInitialized.current = true;
     };
 
-    setupTerminal();
-  }, [id, cwd]);
+    const cleanup = init();
+
+    return () => {
+      if (backendId) {
+        EventsOff(`terminal-output-${backendId}`);
+        CloseTerminal(backendId);
+      }
+      term.dispose();
+      cleanup.then(fn => fn && fn());
+    };
+  }, [id]);
 
   return (
-    <div className={`terminal-card ${isFocused ? 'focused' : ''}`}>
-      <div ref={terminalRef} style={{ width: '100%', height: '100%' }} className="fade-in" tabIndex={-1} />
+    <div 
+      className={`terminal-card ${isFocused ? 'focused' : ''}`}
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        padding: '0', 
+        overflow: 'hidden',
+        display: 'flex'
+      }}
+    >
+      <div 
+        ref={containerRef} 
+        style={{ flex: 1, width: '100%', height: '100%' }} 
+        className="fade-in"
+      />
     </div>
   );
 };

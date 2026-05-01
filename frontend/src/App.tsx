@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Layout, Model, TabNode, Action, Actions, DockLocation, TabSetNode, ITabSetRenderValues, BorderNode } from 'flexlayout-react';
 import 'flexlayout-react/style/dark.css';
 import Sidebar from './components/Sidebar';
-import Terminal, { closeTerminalSession } from './components/Terminal';
+import Terminal from './components/Terminal';
 import { useWorkspaceStore } from './store';
 import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,7 +14,6 @@ function App() {
   const [model, setModel] = useState<Model | null>(null);
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   
-  // Track current workspace ID to know when to completely reset the model
   const lastWorkspaceId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -23,7 +22,6 @@ function App() {
 
   useEffect(() => {
     if (activeWorkspace) {
-      // Only reload model if we switched workspaces or if no model exists
       if (activeWorkspaceId !== lastWorkspaceId.current || !model) {
         try {
           const json = JSON.parse(activeWorkspace.layout);
@@ -51,18 +49,10 @@ function App() {
   }, [saveLayout]);
 
   const onAction = useCallback((action: Action) => {
-    if (action.type === Actions.DELETE_TAB) {
-      const nodeId = (action.data as any).node;
-      const node = model?.getNodeById(nodeId) as TabNode;
-      if (node) {
-        const config = node.getConfig();
-        if (config && config.id) {
-          closeTerminalSession(config.id);
-        }
-      }
-    }
+    // Note: We've removed closeTerminalSession because 
+    // Terminal component now handles its own cleanup on unmount
     return action;
-  }, [model]);
+  }, []);
 
   const factory = (node: TabNode) => {
     const component = node.getComponent();
