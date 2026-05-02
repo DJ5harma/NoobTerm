@@ -3,9 +3,12 @@ package terminal
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,20 +35,135 @@ type Session struct {
 	mu        sync.Mutex
 }
 
+type Config struct {
+	DefaultShell string `json:"defaultShell"`
+}
+
+type ShellInfo struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
 type Manager struct {
 	sessions map[string]*Session
 	mu       sync.Mutex
 	ctx      context.Context
+	config   Config
+	configPath string
 }
 
 func NewManager() *Manager {
-	return &Manager{
+	home, _ := os.UserHomeDir()
+	configDir := filepath.Join(home, ".termspace")
+	os.MkdirAll(configDir, 0755)
+	configPath := filepath.Join(configDir, "config.json")
+
+	m := &Manager{
 		sessions: make(map[string]*Session),
+		configPath: configPath,
 	}
+	m.loadConfig()
+	return m
 }
 
 func (m *Manager) SetContext(ctx context.Context) {
 	m.ctx = ctx
+}
+
+func (m *Manager) loadConfig() {
+	data, err := os.ReadFile(m.configPath)
+	if err == nil {
+		json.Unmarshal(data, &m.config)
+	}
+	if m.config.DefaultShell == "" {
+		if runtime.GOOS == "windows" {
+			m.config.DefaultShell = "powershell.exe"
+		} else {
+			m.config.DefaultShell = os.Getenv("SHELL")
+			if m.config.DefaultShell == "" {
+				m.config.DefaultShell = "bash"
+			}
+		}
+	}
+}
+
+func (m *Manager) SaveConfig(config Config) error {
+	m.mu.Lock()
+	m.config = config
+	m.mu.Unlock()
+
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(m.configPath, data, 0644)
+}
+
+func (m *Manager) GetConfig() Config {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.config
+}
+
+func (m *Manager) GetAvailableShells() []ShellInfo {
+	var shells []ShellInfo
+	var searchList []string
+
+	if runtime.GOOS == "windows" {
+		searchList = []string{
+			"powershell.exe",
+			"pwsh.exe",
+			"cmd.exe",
+			"bash.exe",
+			"git-bash.exe",
+		}
+	} else {
+		searchList = []string{
+			"bash",
+			"zsh",
+			"fish",
+			"sh",
+		}
+	}
+
+	for _, name := range searchList {
+		if path, err := exec.LookPath(name); err == nil {
+			shells = append(shells, ShellInfo{
+				Name: strings.TrimSuffix(name, ".exe"),
+				Path: path,
+			})
+		}
+	}
+
+	// Also check some common absolute paths if not in PATH
+	if runtime.GOOS == "windows" {
+		commonPaths := []string{
+			`C:\Program Files\Git\bin\bash.exe`,
+			`C:\Program Files\Git\git-bash.exe`,
+			`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,
+			`C:\Windows\System32\cmd.exe`,
+		}
+		for _, p := range commonPaths {
+			if _, err := os.Stat(p); err == nil {
+				exists := false
+				for _, s := range shells {
+					if s.Path == p {
+						exists = true
+						break
+					}
+				}
+				if !exists {
+					name := filepath.Base(p)
+					shells = append(shells, ShellInfo{
+						Name: strings.TrimSuffix(name, ".exe"),
+						Path: p,
+					})
+				}
+			}
+		}
+	}
+
+	return shells
 }
 
 func (m *Manager) Create(id, cwd string) (string, error) {
@@ -61,16 +179,7 @@ func (m *Manager) Create(id, cwd string) (string, error) {
 		return "", err
 	}
 
-	var shell string
-	if runtime.GOOS == "windows" {
-		shell = "powershell.exe"
-	} else {
-		shell = os.Getenv("SHELL")
-		if shell == "" {
-			shell = "bash"
-		}
-	}
-
+	shell := m.config.DefaultShell
 	if fullPath, err := exec.LookPath(shell); err == nil {
 		shell = fullPath
 	}

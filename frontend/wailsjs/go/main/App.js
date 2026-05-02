@@ -14,6 +14,14 @@ export function DeleteWorkspace(arg1) {
   return window['go']['main']['App']['DeleteWorkspace'](arg1);
 }
 
+export function GetAvailableShells() {
+  return window['go']['main']['App']['GetAvailableShells']();
+}
+
+export function GetConfig() {
+  return window['go']['main']['App']['GetConfig']();
+}
+
 export function GetOrCreateTerminal(arg1, arg2) {
   return window['go']['main']['App']['GetOrCreateTerminal'](arg1, arg2);
 }
@@ -28,6 +36,10 @@ export function ListWorkspaces() {
 
 export function ResizeTerminal(arg1, arg2, arg3) {
   return window['go']['main']['App']['ResizeTerminal'](arg1, arg2, arg3);
+}
+
+export function SaveConfig(arg1) {
+  return window['go']['main']['App']['SaveConfig'](arg1);
 }
 
 export function SaveWorkspace(arg1) {

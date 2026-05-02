@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useWorkspaceStore, Workspace } from '../store';
 import { useThemeStore, ThemeType } from '../themeStore';
 import { useModalStore } from '../modalStore';
-import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch } from 'lucide-react';
+import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch, Terminal as TerminalIcon } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 import Logo from '../assets/images/logo_2.png';
+import ShellSettingsModal from './ShellSettingsModal';
 
 interface ContextMenu {
   x: number;
@@ -27,9 +28,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
   const createWorkspace = store?.createWorkspace;
   const deleteWorkspace = store?.deleteWorkspace;
   const updateWorkspacePath = store?.updateWorkspacePath;
+  const config = store?.config;
+  const availableShells = store?.availableShells || [];
+
+  const currentShellName = availableShells.find(s => s.path === config?.defaultShell)?.name || '';
 
   const [hoveredWs, setHoveredWs] = useState<string | null>(null);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showShellModal, setShowShellModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [gitBranches, setGitBranches] = useState<Record<string, string>>({});
@@ -294,6 +300,38 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
         alignItems: isCollapsed ? 'center' : 'stretch'
       }}>
         <div 
+          onClick={() => setShowShellModal(true)}
+          title={isCollapsed ? 'Default Shell Settings' : ''}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            padding: '12px',
+            borderRadius: 'var(--radius)',
+            fontSize: '14px', 
+            color: 'var(--text-main)', 
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            fontWeight: 600,
+            gap: '12px'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        >
+          <TerminalIcon size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          {!isCollapsed && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+              <span style={{ fontSize: '13px', lineHeight: 1 }}>Default Shell</span>
+              {currentShellName && (
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {currentShellName}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div 
           onClick={() => setShowThemeModal(true)}
           title={isCollapsed ? 'Themes' : ''}
           style={{ 
@@ -315,6 +353,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
           {!isCollapsed && <span>Themes</span>}
         </div>
       </div>
+
+      <ShellSettingsModal 
+        isOpen={showShellModal}
+        onClose={() => setShowShellModal(false)}
+      />
 
       {/* Theme Modal */}
       {showThemeModal && (

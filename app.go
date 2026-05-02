@@ -69,6 +69,18 @@ func (a *App) CloseTerminal(id string) {
 	a.terminalManager.Close(id)
 }
 
+func (a *App) GetAvailableShells() []terminal.ShellInfo {
+	return a.terminalManager.GetAvailableShells()
+}
+
+func (a *App) GetConfig() terminal.Config {
+	return a.terminalManager.GetConfig()
+}
+
+func (a *App) SaveConfig(config terminal.Config) error {
+	return a.terminalManager.SaveConfig(config)
+}
+
 // Workspace methods
 
 func (a *App) CreateWorkspace(name, path string) (*workspace.Workspace, error) {

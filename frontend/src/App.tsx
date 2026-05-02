@@ -32,7 +32,7 @@ interface ContextMenu {
 
 function App() {
   const { theme } = useThemeStore();
-  const { workspaces, activeWorkspaceId, fetchWorkspaces, setActiveWorkspace, setActiveTerminal, updateActiveWorkspaceLayout } = useWorkspaceStore();
+  const { workspaces, activeWorkspaceId, fetchWorkspaces, fetchConfig, fetchAvailableShells, setActiveWorkspace, setActiveTerminal, updateActiveWorkspaceLayout } = useWorkspaceStore();
   const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
   
   // Custom Hooks
@@ -51,7 +51,9 @@ function App() {
 
   useEffect(() => {
     fetchWorkspaces();
-  }, [fetchWorkspaces]);
+    fetchConfig();
+    fetchAvailableShells();
+  }, [fetchWorkspaces, fetchConfig, fetchAvailableShells]);
 
   // Keyboard Shortcuts (Global)
   useEffect(() => {

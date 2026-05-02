@@ -1,3 +1,34 @@
+export namespace terminal {
+	
+	export class Config {
+	    defaultShell: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Config(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.defaultShell = source["defaultShell"];
+	    }
+	}
+	export class ShellInfo {
+	    name: string;
+	    path: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ShellInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
+	    }
+	}
+
+}
+
 export namespace workspace {
 	
 	export class CommandVariable {

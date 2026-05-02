@@ -1,18 +1,24 @@
 import { create } from 'zustand';
-import { workspace } from '../wailsjs/go/models';
-import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace } from '../wailsjs/go/main/App';
+import { workspace, terminal } from '../wailsjs/go/models';
+import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace, GetConfig, SaveConfig, GetAvailableShells } from '../wailsjs/go/main/App';
 import { useModalStore } from './modalStore';
 import { v4 as uuidv4 } from 'uuid';
 
 export type Workspace = workspace.Workspace;
 export type Command = workspace.Command;
+export type Config = terminal.Config;
+export type ShellInfo = terminal.ShellInfo;
 
 interface WorkspaceState {
   workspaces: Workspace[];
   activeWorkspaceId: string | null;
   activeTerminalId: string | null;
+  config: Config | null;
+  availableShells: ShellInfo[];
 
   fetchWorkspaces: () => Promise<void>;
+  fetchConfig: () => Promise<void>;
+  fetchAvailableShells: () => Promise<void>;
   setActiveWorkspace: (id: string | null) => void;
   setActiveTerminal: (id: string | null) => void;
   
@@ -30,6 +36,7 @@ interface WorkspaceState {
   updateCommand: (id: string, name: string, cmdStr: string, isGlobal: boolean, isStartup: boolean) => Promise<void>;
   
   navigateAndRunCommand: (workspaceId: string, commandStr: string) => Promise<void>;
+  saveConfig: (config: Config) => Promise<void>;
 }
 
 const getNewDefaultLayout = () => JSON.stringify({
@@ -89,6 +96,36 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspaces: [],
   activeWorkspaceId: null,
   activeTerminalId: null,
+  config: null,
+  availableShells: [],
+
+  fetchConfig: async () => {
+    try {
+      const config = await GetConfig();
+      set({ config });
+    } catch (err) {
+      console.error('Failed to fetch config:', err);
+    }
+  },
+
+  fetchAvailableShells: async () => {
+    try {
+      const shells = await GetAvailableShells();
+      set({ availableShells: shells });
+    } catch (err) {
+      console.error('Failed to fetch shells:', err);
+    }
+  },
+
+  saveConfig: async (config) => {
+    try {
+      await SaveConfig(config as any);
+      set({ config });
+    } catch (err) {
+      console.error('Failed to save config:', err);
+      throw err;
+    }
+  },
 
   fetchWorkspaces: async () => {
     try {

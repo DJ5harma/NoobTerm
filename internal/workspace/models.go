@@ -24,3 +24,12 @@ type CommandVariable struct {
 	Name    string `json:"name"`
 	Default string `json:"default,omitempty"`
 }
+
+type Config struct {
+	DefaultShell string `json:"defaultShell"`
+}
+
+type ShellInfo struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
