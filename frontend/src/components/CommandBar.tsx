@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useWorkspaceStore, Command as CommandType } from '../store';
+import { useWorkspaceStore, Command as CommandType } from '../stores/workspaceStore';
 import { useModalStore } from '../modalStore';
 import { Command, Plus, Play, ChevronUp, ChevronDown, Terminal as TerminalIcon, Search, MoreVertical, Globe, Download, X, Check, Rocket } from 'lucide-react';
 import { WriteTerminal } from '../../wailsjs/go/main/App';

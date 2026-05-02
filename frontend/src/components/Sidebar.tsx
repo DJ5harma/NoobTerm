@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useWorkspaceStore, Workspace } from '../store';
+import { useWorkspaceStore, Workspace } from '../stores/workspaceStore';
+import { useUIStore } from '../stores/uiStore';
+import { useConfigStore } from '../stores/configStore';
 import { useThemeStore, ThemeType } from '../themeStore';
 import { useModalStore } from '../modalStore';
 import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch, Terminal as TerminalIcon, Keyboard, LayoutDashboard } from 'lucide-react';
@@ -21,36 +23,30 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
-  const store = useWorkspaceStore();
-  const { theme, setTheme } = useThemeStore();
-  
-  const workspaces = store?.workspaces || [];
-  const activeWorkspaceId = store?.activeWorkspaceId;
-  const setActiveWorkspace = store?.setActiveWorkspace;
-  const createWorkspace = store?.createWorkspace;
-  const deleteWorkspace = store?.deleteWorkspace;
-  const updateWorkspacePath = store?.updateWorkspacePath;
-  const config = store?.config;
-  const availableShells = store?.availableShells || [];
-  
-  const isCollapsed = store?.isSidebarCollapsed;
-  const setIsCollapsed = store?.setSidebarCollapsed;
-  const showShellModal = store?.showShellModal;
-  const setShowShellModal = store?.setShowShellModal;
-  const showThemeModal = store?.showThemeModal;
-  const setShowThemeModal = store?.setShowThemeModal;
-  const showShortcutsModal = store?.showShortcutsModal;
-  const setShowShortcutsModal = store?.setShowShortcutsModal;
-  const showDashboard = store?.showDashboard;
-  const setShowDashboard = store?.setShowDashboard;
+  const { workspaces, activeWorkspaceId, setActiveWorkspace, createWorkspace, deleteWorkspace, updateWorkspacePath } = useWorkspaceStore();
+  const { config, availableShells } = useConfigStore();
+  const { 
+    isSidebarCollapsed: isCollapsed, 
+    setSidebarCollapsed: setIsCollapsed, 
+    showShellModal, 
+    setShowShellModal, 
+    showThemeModal, 
+    setShowThemeModal, 
+    showShortcutsModal, 
+    setShowShortcutsModal, 
+    showDashboard, 
+    setShowDashboard 
+  } = useUIStore();
 
-  const currentShellName = availableShells.find(s => s.path === config?.defaultShell)?.name || '';
+  const { theme, setTheme } = useThemeStore();
 
   const [hoveredWs, setHoveredWs] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [gitBranches, setGitBranches] = useState<Record<string, string>>({});
-
+  
   const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
+
+  const currentShellName = availableShells.find(s => s.path === config?.defaultShell)?.name || '';
 
   // Listen for Git branch updates
   useEffect(() => {

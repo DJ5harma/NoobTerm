@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"NoobTerm/internal/models"
 	"github.com/aymanbagabas/go-pty"
 	"github.com/shirou/gopsutil/v3/process"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -35,20 +36,11 @@ type Session struct {
 	mu        sync.Mutex
 }
 
-type Config struct {
-	DefaultShell string `json:"defaultShell"`
-}
-
-type ShellInfo struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-}
-
 type Manager struct {
 	sessions map[string]*Session
 	mu       sync.Mutex
 	ctx      context.Context
-	config   Config
+	config   models.Config
 	configPath string
 }
 
@@ -87,7 +79,7 @@ func (m *Manager) loadConfig() {
 	}
 }
 
-func (m *Manager) SaveConfig(config Config) error {
+func (m *Manager) SaveConfig(config models.Config) error {
 	m.mu.Lock()
 	m.config = config
 	m.mu.Unlock()
@@ -99,14 +91,14 @@ func (m *Manager) SaveConfig(config Config) error {
 	return os.WriteFile(m.configPath, data, 0644)
 }
 
-func (m *Manager) GetConfig() Config {
+func (m *Manager) GetConfig() models.Config {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.config
 }
 
-func (m *Manager) GetAvailableShells() []ShellInfo {
-	var shells []ShellInfo
+func (m *Manager) GetAvailableShells() []models.ShellInfo {
+	var shells []models.ShellInfo
 	var searchList []string
 
 	if runtime.GOOS == "windows" {
@@ -128,7 +120,7 @@ func (m *Manager) GetAvailableShells() []ShellInfo {
 
 	for _, name := range searchList {
 		if path, err := exec.LookPath(name); err == nil {
-			shells = append(shells, ShellInfo{
+			shells = append(shells, models.ShellInfo{
 				Name: strings.TrimSuffix(name, ".exe"),
 				Path: path,
 			})
@@ -154,7 +146,7 @@ func (m *Manager) GetAvailableShells() []ShellInfo {
 				}
 				if !exists {
 					name := filepath.Base(p)
-					shells = append(shells, ShellInfo{
+					shells = append(shells, models.ShellInfo{
 						Name: strings.TrimSuffix(name, ".exe"),
 						Path: p,
 					})

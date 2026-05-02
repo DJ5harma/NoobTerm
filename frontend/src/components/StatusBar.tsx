@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useWorkspaceStore } from '../store';
+import { useSystemStore } from '../stores/systemStore';
+import { useUIStore } from '../stores/uiStore';
 import { Globe, Cpu, Activity, Server } from 'lucide-react';
 import PortModal from './PortModal';
 
 const StatusBar: React.FC = () => {
-  const { openPorts, fetchOpenPorts } = useWorkspaceStore();
-  const [showPortModal, setShowPortModal] = useState(false);
+  const { openPorts, fetchOpenPorts } = useSystemStore();
+  const { showDashboard: showPortModal, setShowDashboard: setShowPortModal } = useUIStore();
 
   useEffect(() => {
     // Initial fetch

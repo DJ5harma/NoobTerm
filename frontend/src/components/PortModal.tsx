@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWorkspaceStore } from '../store';
+import { useSystemStore } from '../stores/systemStore';
 import { X, Globe, Activity, Trash2, ExternalLink } from 'lucide-react';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 
@@ -9,7 +9,8 @@ interface PortModalProps {
 }
 
 const PortModal: React.FC<PortModalProps> = ({ isOpen, onClose }) => {
-    const { openPorts } = useWorkspaceStore();
+    const { openPorts } = useSystemStore();
+
 
     if (!isOpen) return null;
 

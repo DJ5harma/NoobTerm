@@ -1,16 +1,18 @@
 import React, { useEffect } from 'react';
-import { useWorkspaceStore } from '../store';
+import { useWorkspaceStore } from '../stores/workspaceStore';
+import { useUIStore } from '../stores/uiStore';
+import { useSystemStore } from '../stores/systemStore';
 import { X, LayoutDashboard, Cpu, HardDrive, Activity, Terminal, Folder, Zap } from 'lucide-react';
 import { formatBytes } from '../utils/format';
 
 const Dashboard: React.FC = () => {
     const { 
-        systemStats, 
-        fetchSystemStats, 
         workspaces, 
-        setShowDashboard,
         activeWorkspaceId 
     } = useWorkspaceStore();
+
+    const { setShowDashboard } = useUIStore();
+    const { systemStats, fetchSystemStats } = useSystemStore();
 
     useEffect(() => {
         fetchSystemStats();

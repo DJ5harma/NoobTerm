@@ -1,42 +1,20 @@
 import { create } from 'zustand';
-import { workspace, terminal } from '../wailsjs/go/models';
-import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace, GetConfig, SaveConfig, GetAvailableShells, GetOpenPorts, GetSystemStats } from '../wailsjs/go/main/App';
-import { useModalStore } from './modalStore';
+import { workspace } from '../../wailsjs/go/models';
+import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace } from '../../wailsjs/go/main/App';
+import { useModalStore } from '../modalStore';
 import { v4 as uuidv4 } from 'uuid';
 
 export type Workspace = workspace.Workspace;
 export type Command = workspace.Command;
-export type Config = terminal.Config;
-export type ShellInfo = terminal.ShellInfo;
-export type PortInfo = workspace.PortInfo;
-export type SystemStats = workspace.SystemStats;
 
 interface WorkspaceState {
   workspaces: Workspace[];
   activeWorkspaceId: string | null;
   activeTerminalId: string | null;
-  config: Config | null;
-  availableShells: ShellInfo[];
-  openPorts: PortInfo[];
-  systemStats: SystemStats | null;
-  isSidebarCollapsed: boolean;
-  showShellModal: boolean;
-  showThemeModal: boolean;
-  showShortcutsModal: boolean;
-  showDashboard: boolean;
 
   fetchWorkspaces: () => Promise<void>;
-  fetchConfig: () => Promise<void>;
-  fetchAvailableShells: () => Promise<void>;
-  fetchOpenPorts: () => Promise<void>;
-  fetchSystemStats: () => Promise<void>;
   setActiveWorkspace: (id: string | null) => void;
   setActiveTerminal: (id: string | null) => void;
-  setSidebarCollapsed: (collapsed: boolean) => void;
-  setShowShellModal: (show: boolean) => void;
-  setShowThemeModal: (show: boolean) => void;
-  setShowShortcutsModal: (show: boolean) => void;
-  setShowDashboard: (show: boolean) => void;
   
   createWorkspace: (name: string, path: string) => Promise<void>;
   saveWorkspace: (ws: Workspace) => Promise<void>;
@@ -52,7 +30,6 @@ interface WorkspaceState {
   updateCommand: (id: string, name: string, cmdStr: string, isGlobal: boolean, isStartup: boolean) => Promise<void>;
   
   navigateAndRunCommand: (workspaceId: string, commandStr: string) => Promise<void>;
-  saveConfig: (config: Config) => Promise<void>;
 }
 
 const getNewDefaultLayout = () => JSON.stringify({
@@ -112,67 +89,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspaces: [],
   activeWorkspaceId: null,
   activeTerminalId: null,
-  config: null,
-  availableShells: [],
-  openPorts: [],
-  systemStats: null,
-  isSidebarCollapsed: false,
-  showShellModal: false,
-  showThemeModal: false,
-  showShortcutsModal: false,
-  showDashboard: false,
-
-  setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
-  setShowShellModal: (show) => set({ showShellModal: show }),
-  setShowThemeModal: (show) => set({ showThemeModal: show }),
-  setShowShortcutsModal: (show) => set({ showShortcutsModal: show }),
-  setShowDashboard: (show) => set({ showDashboard: show }),
-
-  fetchSystemStats: async () => {
-    try {
-      const stats = await GetSystemStats();
-      set({ systemStats: stats });
-    } catch (err) {
-      console.error('Failed to fetch system stats:', err);
-    }
-  },
-
-  fetchOpenPorts: async () => {
-    try {
-      const ports = await GetOpenPorts();
-      set({ openPorts: ports || [] });
-    } catch (err) {
-      console.error('Failed to fetch open ports:', err);
-    }
-  },
-
-  fetchConfig: async () => {
-    try {
-      const config = await GetConfig();
-      set({ config });
-    } catch (err) {
-      console.error('Failed to fetch config:', err);
-    }
-  },
-
-  fetchAvailableShells: async () => {
-    try {
-      const shells = await GetAvailableShells();
-      set({ availableShells: shells });
-    } catch (err) {
-      console.error('Failed to fetch shells:', err);
-    }
-  },
-
-  saveConfig: async (config) => {
-    try {
-      await SaveConfig(config as any);
-      set({ config });
-    } catch (err) {
-      console.error('Failed to save config:', err);
-      throw err;
-    }
-  },
 
   fetchWorkspaces: async () => {
     try {
@@ -247,7 +163,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const { activeWorkspaceId } = get();
     if (!activeWorkspaceId) return;
 
-    // Use a simple, reliable ID generation
     const id = Date.now().toString() + Math.random().toString(36).substring(2, 9);
 
     const newCommand = {
@@ -273,7 +188,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       return { workspaces: updatedWorkspaces as Workspace[] };
     });
     
-    // Get the updated workspace to save
     const updatedState = get();
     const activeWs = updatedState.workspaces.find(w => w.id === activeWorkspaceId);
     
@@ -360,7 +274,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     set({ workspaces: updatedWorkspaces });
     
-    // Save all workspaces to persist global flag
     await Promise.all(updatedWorkspaces.map(ws => SaveWorkspace(ws as any)));
   },
 
@@ -376,7 +289,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         .map(cmd => ({ 
             ...cmd, 
             id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-            isGlobal: false // Imported commands start as local
+            isGlobal: false
         }));
 
     const updatedWorkspaces = workspaces.map(ws => {
@@ -420,9 +333,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   navigateAndRunCommand: async (workspaceId, commandStr) => {
-    // This is a complex action that will be coordinated in App.tsx 
-    // because it needs access to the active flexlayout model.
-    // For now, we just switch the workspace.
     set({ activeWorkspaceId: workspaceId });
   }
 }));

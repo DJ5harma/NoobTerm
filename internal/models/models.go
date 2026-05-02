@@ -1,4 +1,4 @@
-package workspace
+package models
 
 type Workspace struct {
 	ID        string    `json:"id"`

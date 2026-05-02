@@ -1,16 +1,17 @@
-package workspace
+package system
 
 import (
 	"sort"
 	"strings"
 	"time"
 
+	"NoobTerm/internal/models"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/process"
 )
 
-func GetSystemStats() (*SystemStats, error) {
+func GetSystemStats() (*models.SystemStats, error) {
 	// 1. CPU Usage
 	cpuPercents, err := cpu.Percent(time.Second, false)
 	var cpuUsage float64
@@ -26,7 +27,7 @@ func GetSystemStats() (*SystemStats, error) {
 
 	// 3. Top Processes
 	procs, err := process.Processes()
-	var procInfos []ProcessInfo
+	var procInfos []models.ProcessInfo
 	if err == nil {
 		for i, p := range procs {
 			if i > 100 { // Limit scanning to first 100 for performance, then sort
@@ -41,7 +42,7 @@ func GetSystemStats() (*SystemStats, error) {
 				rss = memInfo.RSS
 			}
 			
-			procInfos = append(procInfos, ProcessInfo{
+			procInfos = append(procInfos, models.ProcessInfo{
 				PID:       p.Pid,
 				Name:      strings.TrimSuffix(name, ".exe"),
 				CPU:       cpuP,
@@ -61,9 +62,9 @@ func GetSystemStats() (*SystemStats, error) {
 		procInfos = procInfos[:10]
 	}
 
-	return &SystemStats{
+	return &models.SystemStats{
 		CPUUsage: cpuUsage,
-		MemoryUsage: MemoryStats{
+		MemoryUsage: models.MemoryStats{
 			Total:       vMem.Total,
 			Used:        vMem.Used,
 			UsedPercent: vMem.UsedPercent,

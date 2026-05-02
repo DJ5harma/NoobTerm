@@ -13,7 +13,9 @@ import TerminalContextMenu from './components/TerminalContextMenu';
 import CommandPalette, { SearchResult } from './components/CommandPalette';
 
 // Hooks & Stores
-import { useWorkspaceStore } from './store';
+import { useWorkspaceStore } from './stores/workspaceStore';
+import { useUIStore } from './stores/uiStore';
+import { useConfigStore } from './stores/configStore';
 import { useThemeStore } from './themeStore';
 import { useModalStore } from './modalStore';
 import { useTerminalMonitor } from './hooks/useTerminalMonitor';
@@ -36,16 +38,22 @@ function App() {
     workspaces, 
     activeWorkspaceId, 
     fetchWorkspaces, 
-    fetchConfig, 
-    fetchAvailableShells, 
     setActiveWorkspace, 
     setActiveTerminal, 
     updateActiveWorkspaceLayout,
+  } = useWorkspaceStore();
+
+  const {
     isSidebarCollapsed,
     setSidebarCollapsed,
     setShowShellModal,
-    setShowThemeModal
-  } = useWorkspaceStore();
+  } = useUIStore();
+
+  const {
+    fetchConfig,
+    fetchAvailableShells,
+  } = useConfigStore();
+
   const { theme, setTheme } = useThemeStore();
   const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
   

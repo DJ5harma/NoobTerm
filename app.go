@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"NoobTerm/internal/models"
+	"NoobTerm/internal/system"
 	"NoobTerm/internal/terminal"
 	"NoobTerm/internal/workspace"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -17,12 +17,9 @@ type App struct {
 	workspaceManager *workspace.Manager
 }
 
-// NewApp creates a new App application struct
+// NewApp creates a new App struct
 func NewApp() *App {
-	wm, err := workspace.NewManager()
-	if err != nil {
-		fmt.Printf("Error creating workspace manager: %v\n", err)
-	}
+	wm, _ := workspace.NewManager()
 	return &App{
 		terminalManager:  terminal.NewManager(),
 		workspaceManager: wm,
@@ -39,22 +36,12 @@ func (a *App) startup(ctx context.Context) {
 	}
 }
 
-// SelectDirectory opens a directory dialog and returns the selected path
-func (a *App) SelectDirectory() (string, error) {
-	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
-		DefaultDirectory: "",
-		Title:            "Select Workspace Directory",
-	})
-}
-
-// Terminal methods
-
 func (a *App) GetOrCreateTerminal(id, cwd string) (string, error) {
 	return a.terminalManager.Create(id, cwd)
 }
 
-func (a *App) GetTerminalBuffer(id string) string {
-	return a.terminalManager.GetBuffer(id)
+func (a *App) GetTerminalBuffer(id string) (string, error) {
+	return a.terminalManager.GetBuffer(id), nil
 }
 
 func (a *App) WriteTerminal(id, data string) error {
@@ -69,43 +56,43 @@ func (a *App) CloseTerminal(id string) {
 	a.terminalManager.Close(id)
 }
 
-func (a *App) GetAvailableShells() []terminal.ShellInfo {
+func (a *App) GetAvailableShells() []models.ShellInfo {
 	return a.terminalManager.GetAvailableShells()
 }
 
-func (a *App) GetConfig() terminal.Config {
+func (a *App) GetConfig() models.Config {
 	return a.terminalManager.GetConfig()
 }
 
-func (a *App) SaveConfig(config terminal.Config) error {
+func (a *App) SaveConfig(config models.Config) error {
 	return a.terminalManager.SaveConfig(config)
 }
 
-func (a *App) GetOpenPorts() ([]workspace.PortInfo, error) {
-	return workspace.GetOpenPorts()
+func (a *App) GetOpenPorts() ([]models.PortInfo, error) {
+	return system.GetOpenPorts()
 }
 
-func (a *App) GetSystemStats() (*workspace.SystemStats, error) {
-	return workspace.GetSystemStats()
+func (a *App) GetSystemStats() (*models.SystemStats, error) {
+	return system.GetSystemStats()
 }
 
 // Workspace methods
 
-func (a *App) CreateWorkspace(name, path string) (*workspace.Workspace, error) {
+func (a *App) CreateWorkspace(name, path string) (*models.Workspace, error) {
 	if a.workspaceManager == nil {
 		return nil, fmt.Errorf("workspace manager not initialized")
 	}
 	return a.workspaceManager.Create(name, path)
 }
 
-func (a *App) ListWorkspaces() ([]*workspace.Workspace, error) {
+func (a *App) ListWorkspaces() ([]*models.Workspace, error) {
 	if a.workspaceManager == nil {
-		return []*workspace.Workspace{}, fmt.Errorf("workspace manager not initialized")
+		return nil, fmt.Errorf("workspace manager not initialized")
 	}
 	return a.workspaceManager.List()
 }
 
-func (a *App) SaveWorkspace(ws *workspace.Workspace) error {
+func (a *App) SaveWorkspace(ws *models.Workspace) error {
 	if a.workspaceManager == nil {
 		return fmt.Errorf("workspace manager not initialized")
 	}

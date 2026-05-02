@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Fuse from 'fuse.js';
 import { Search, Folder, Terminal, Command, Hash, ChevronRight } from 'lucide-react';
-import { useWorkspaceStore, Workspace, Command as CommandType } from '../store';
+import { useWorkspaceStore, Workspace, Command as CommandType } from '../stores/workspaceStore';
 
 interface SearchResult {
     type: 'workspace' | 'terminal' | 'command';

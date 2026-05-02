@@ -1,19 +1,20 @@
-package workspace
+package system
 
 import (
 	"strings"
 
+	"NoobTerm/internal/models"
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
 )
 
-func GetOpenPorts() ([]PortInfo, error) {
+func GetOpenPorts() ([]models.PortInfo, error) {
 	connections, err := net.Connections("tcp")
 	if err != nil {
 		return nil, err
 	}
 
-	var ports []PortInfo
+	var ports []models.PortInfo
 	seen := make(map[int]bool)
 
 	for _, conn := range connections {
@@ -38,7 +39,7 @@ func GetOpenPorts() ([]PortInfo, error) {
 			// Clean up process name (remove .exe on windows)
 			procName = strings.TrimSuffix(procName, ".exe")
 
-			ports = append(ports, PortInfo{
+			ports = append(ports, models.PortInfo{
 				Port:    port,
 				Process: procName,
 				PID:     conn.Pid,

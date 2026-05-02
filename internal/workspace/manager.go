@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"NoobTerm/internal/models"
 	"github.com/google/uuid"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -21,7 +22,7 @@ type Manager struct {
 	ctx           context.Context
 	lastBranches  map[string]string
 	lastHeadTimes map[string]time.Time
-	workspaces    map[string]*Workspace
+	workspaces    map[string]*models.Workspace
 }
 
 func NewManager() (*Manager, error) {
@@ -39,7 +40,7 @@ func NewManager() (*Manager, error) {
 		workspacesDir: dir,
 		lastBranches:  make(map[string]string),
 		lastHeadTimes: make(map[string]time.Time),
-		workspaces:    make(map[string]*Workspace),
+		workspaces:    make(map[string]*models.Workspace),
 	}
 
 	// Initial load
@@ -107,7 +108,7 @@ func (m *Manager) monitorBranches() {
 		case <-ticker.C:
 			m.mu.Lock()
 			// Use a slice to avoid holding lock during I/O
-			var workspaces []*Workspace
+			var workspaces []*models.Workspace
 			for _, ws := range m.workspaces {
 				workspaces = append(workspaces, ws)
 			}
@@ -128,15 +129,15 @@ func (m *Manager) monitorBranches() {
 	}
 }
 
-func (m *Manager) Create(name, path string) (*Workspace, error) {
-	ws := &Workspace{
+func (m *Manager) Create(name, path string) (*models.Workspace, error) {
+	ws := &models.Workspace{
 		ID:        uuid.New().String(),
 		Name:      name,
 		Path:      path,
 		CreatedAt: time.Now().UnixMilli(),
 		UpdatedAt: time.Now().UnixMilli(),
 		Layout:    "", // Will be initialized by frontend
-		Commands:  []Command{},
+		Commands:  []models.Command{},
 	}
 
 	if err := m.Save(ws); err != nil {
@@ -150,10 +151,10 @@ func (m *Manager) Create(name, path string) (*Workspace, error) {
 	return ws, nil
 }
 
-func (m *Manager) List() ([]*Workspace, error) {
+func (m *Manager) List() ([]*models.Workspace, error) {
 	m.mu.Lock()
 	if len(m.workspaces) > 0 {
-		var list []*Workspace
+		var list []*models.Workspace
 		for _, ws := range m.workspaces {
 			list = append(list, ws)
 		}
@@ -167,7 +168,7 @@ func (m *Manager) List() ([]*Workspace, error) {
 		return nil, err
 	}
 
-	var workspaces []*Workspace
+	var workspaces []*models.Workspace
 	m.mu.Lock()
 	for _, f := range files {
 		if filepath.Ext(f.Name()) == ".json" {
@@ -175,10 +176,10 @@ func (m *Manager) List() ([]*Workspace, error) {
 			if err != nil {
 				continue
 			}
-			var ws Workspace
+			var ws models.Workspace
 			if err := json.Unmarshal(data, &ws); err == nil {
 				if ws.Commands == nil {
-					ws.Commands = []Command{}
+					ws.Commands = []models.Command{}
 				}
 				workspaces = append(workspaces, &ws)
 				m.workspaces[ws.ID] = &ws
@@ -189,7 +190,7 @@ func (m *Manager) List() ([]*Workspace, error) {
 	return workspaces, nil
 }
 
-func (m *Manager) Save(ws *Workspace) error {
+func (m *Manager) Save(ws *models.Workspace) error {
 	m.mu.Lock()
 	ws.UpdatedAt = time.Now().UnixMilli()
 	m.workspaces[ws.ID] = ws

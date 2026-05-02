@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useWorkspaceStore, ShellInfo } from '../store';
+import { useConfigStore, ShellInfo } from '../stores/configStore';
 import { X, Terminal, Check, Info } from 'lucide-react';
 
 interface ShellSettingsModalProps {
@@ -8,7 +8,7 @@ interface ShellSettingsModalProps {
 }
 
 const ShellSettingsModal: React.FC<ShellSettingsModalProps> = ({ isOpen, onClose }) => {
-    const { config, availableShells, saveConfig } = useWorkspaceStore();
+    const { config, availableShells, saveConfig } = useConfigStore();
     const [selectedShell, setSelectedShell] = useState<string>('');
 
     useEffect(() => {

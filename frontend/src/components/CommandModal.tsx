@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Command, Globe, Terminal, Rocket } from 'lucide-react';
-import { Command as CommandType } from '../store';
+import { Command as CommandType } from '../stores/workspaceStore';
 
 interface CommandModalProps {
     isOpen: boolean;
