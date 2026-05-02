@@ -31,8 +31,21 @@ interface ContextMenu {
 }
 
 function App() {
-  const { theme } = useThemeStore();
-  const { workspaces, activeWorkspaceId, fetchWorkspaces, fetchConfig, fetchAvailableShells, setActiveWorkspace, setActiveTerminal, updateActiveWorkspaceLayout } = useWorkspaceStore();
+  const { 
+    workspaces, 
+    activeWorkspaceId, 
+    fetchWorkspaces, 
+    fetchConfig, 
+    fetchAvailableShells, 
+    setActiveWorkspace, 
+    setActiveTerminal, 
+    updateActiveWorkspaceLayout,
+    isSidebarCollapsed,
+    setSidebarCollapsed,
+    setShowShellModal,
+    setShowThemeModal
+  } = useWorkspaceStore();
+  const { theme, setTheme } = useThemeStore();
   const { prompt: modalPrompt, confirm: modalConfirm } = useModalStore();
   
   // Custom Hooks
@@ -55,17 +68,122 @@ function App() {
     fetchAvailableShells();
   }, [fetchWorkspaces, fetchConfig, fetchAvailableShells]);
 
+  const findFirstTabset = useCallback((currentModel: Model): string | null => {
+    let targetTabset: string | null = null;
+    currentModel.visitNodes((node) => {
+        if (!targetTabset && node.getType() === 'tabset') {
+            targetTabset = node.getId();
+        }
+    });
+    return targetTabset;
+  }, []);
+
+  const addTerminalToTabset = useCallback((tabsetNodeId: string) => {
+    if (model) {
+      model.doAction(
+        Actions.addNode(
+          { type: "tab", component: "terminal", name: "Terminal", config: { id: uuidv4() } },
+          tabsetNodeId,
+          DockLocation.CENTER,
+          -1
+        )
+      );
+      saveLayout();
+    }
+  }, [model]);
+
+  const saveLayout = useCallback(() => {
+    if (model) {
+      updateActiveWorkspaceLayout(JSON.stringify(model.toJson()));
+    }
+  }, [model, updateActiveWorkspaceLayout]);
+
   // Keyboard Shortcuts (Global)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-            e.preventDefault();
+        const isCtrl = e.ctrlKey || e.metaKey;
+        const isShift = e.shiftKey;
+        const isAlt = e.altKey;
+
+        // Helper to check if we should handle this shortcut
+        const isAppShortcut = (
+            (isCtrl && ['p', 'n', 'b', 't', 'w', ',', '\\', '|'].includes(e.key)) ||
+            (isCtrl && e.key === 'Tab') ||
+            (isCtrl && isAlt && e.key.toLowerCase() === 't')
+        );
+
+        if (!isAppShortcut) return;
+
+        // Skip if typing in an input (unless it's the command palette shortcut)
+        // We only block shortcuts if they would interfere with text entry (like Ctrl+N in a textarea)
+        const target = e.target as HTMLElement;
+        const isRealInput = (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) && 
+                           !target.classList.contains('xterm-helper-textarea');
+        
+        if (isRealInput && e.key !== 'p') return;
+
+        // If we reach here, it's an app shortcut we want to handle
+        e.preventDefault();
+        e.stopPropagation();
+
+        // General
+        if (isCtrl && e.key === 'p') {
             setIsPaletteOpen(prev => !prev);
+        } else if (isCtrl && e.key === 'n') {
+            if ((window as any).handleCreateWorkspace) (window as any).handleCreateWorkspace();
+        } else if (isCtrl && e.key === 'b') {
+            setSidebarCollapsed(!isSidebarCollapsed);
+        }
+
+        // Terminal & Tabs
+        if (model) {
+            if (isCtrl && e.key === 't') {
+                const targetTabset = findFirstTabset(model);
+                if (targetTabset) addTerminalToTabset(targetTabset);
+            } else if (isCtrl && e.key === 'w') {
+                const activeTab = model.getActiveTabset()?.getSelectedNode();
+                if (activeTab) {
+                    model.doAction(Actions.deleteTab(activeTab.getId()));
+                    saveLayout();
+                }
+            } else if (isCtrl && e.key === 'Tab') {
+                const tabset = model.getActiveTabset();
+                if (tabset) {
+                    const children = tabset.getChildren();
+                    const selected = tabset.getSelected();
+                    const nextIndex = isShift 
+                        ? (selected - 1 + children.length) % children.length 
+                        : (selected + 1) % children.length;
+                    model.doAction(Actions.selectTab(children[nextIndex].getId()));
+                }
+            } else if (isCtrl && (e.key === '\\' || e.key === '|')) {
+                const activeTabset = model.getActiveTabset();
+                if (activeTabset) {
+                    model.doAction(Actions.addNode(
+                        { type: "tab", component: "terminal", name: "Terminal", config: { id: uuidv4() } },
+                        activeTabset.getId(),
+                        isShift ? DockLocation.RIGHT : DockLocation.BOTTOM,
+                        -1
+                    ));
+                    saveLayout();
+                }
+            }
+        }
+
+        // Settings
+        if (isCtrl && e.key === ',') {
+            setShowShellModal(true);
+        } else if (isCtrl && isAlt && e.key.toLowerCase() === 't') {
+            const themes: any[] = ['normal', 'joy', 'pro'];
+            const currentIndex = themes.indexOf(theme);
+            const nextTheme = themes[(currentIndex + 1) % themes.length];
+            setTheme(nextTheme);
         }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+
+    window.addEventListener('keydown', handleKeyDown, true); // Use capture phase!
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [model, isSidebarCollapsed, theme, findFirstTabset, addTerminalToTabset, saveLayout, setSidebarCollapsed, setShowShellModal, setTheme]);
 
   // Handle Workspace Switching & Layout Loading
   useEffect(() => {
@@ -90,16 +208,6 @@ function App() {
       lastWorkspaceId.current = null;
     }
   }, [activeWorkspaceId, activeWorkspace, model, executeStartupCommands]);
-
-  const findFirstTabset = useCallback((currentModel: Model): string | null => {
-    let targetTabset: string | null = null;
-    currentModel.visitNodes((node) => {
-        if (!targetTabset && node.getType() === 'tabset') {
-            targetTabset = node.getId();
-        }
-    });
-    return targetTabset;
-  }, []);
 
   const runCommandInNewTerminal = useCallback((currentModel: Model, command: string) => {
     const targetTabset = findFirstTabset(currentModel);
@@ -132,12 +240,6 @@ function App() {
         }
     }
   }, [model, activeWorkspaceId, runCommandInNewTerminal]);
-
-  const saveLayout = useCallback(() => {
-    if (model) {
-      updateActiveWorkspaceLayout(JSON.stringify(model.toJson()));
-    }
-  }, [model, updateActiveWorkspaceLayout]);
 
   const onModelChange = useCallback(() => {
     saveLayout();
@@ -188,20 +290,6 @@ function App() {
     }
     return <div>Unknown component</div>;
   };
-
-  const addTerminalToTabset = useCallback((tabsetNodeId: string) => {
-    if (model) {
-      model.doAction(
-        Actions.addNode(
-          { type: "tab", component: "terminal", name: "Terminal", config: { id: uuidv4() } },
-          tabsetNodeId,
-          DockLocation.CENTER,
-          -1
-        )
-      );
-      saveLayout();
-    }
-  }, [model, saveLayout]);
 
   const onRenderTabSet = useCallback((node: TabSetNode | BorderNode, renderValues: ITabSetRenderValues) => {
     if (node instanceof TabSetNode) {

@@ -15,12 +15,20 @@ interface WorkspaceState {
   activeTerminalId: string | null;
   config: Config | null;
   availableShells: ShellInfo[];
+  isSidebarCollapsed: boolean;
+  showShellModal: boolean;
+  showThemeModal: boolean;
+  showShortcutsModal: boolean;
 
   fetchWorkspaces: () => Promise<void>;
   fetchConfig: () => Promise<void>;
   fetchAvailableShells: () => Promise<void>;
   setActiveWorkspace: (id: string | null) => void;
   setActiveTerminal: (id: string | null) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  setShowShellModal: (show: boolean) => void;
+  setShowThemeModal: (show: boolean) => void;
+  setShowShortcutsModal: (show: boolean) => void;
   
   createWorkspace: (name: string, path: string) => Promise<void>;
   saveWorkspace: (ws: Workspace) => Promise<void>;
@@ -98,6 +106,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   activeTerminalId: null,
   config: null,
   availableShells: [],
+  isSidebarCollapsed: false,
+  showShellModal: false,
+  showThemeModal: false,
+  showShortcutsModal: false,
+
+  setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
+  setShowShellModal: (show) => set({ showShellModal: show }),
+  setShowThemeModal: (show) => set({ showThemeModal: show }),
+  setShowShortcutsModal: (show) => set({ showShortcutsModal: show }),
 
   fetchConfig: async () => {
     try {

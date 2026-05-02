@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useWorkspaceStore, Workspace } from '../store';
 import { useThemeStore, ThemeType } from '../themeStore';
 import { useModalStore } from '../modalStore';
-import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch, Terminal as TerminalIcon } from 'lucide-react';
+import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch, Terminal as TerminalIcon, Keyboard } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 import Logo from '../assets/images/logo_2.png';
 import ShellSettingsModal from './ShellSettingsModal';
+import ShortcutsModal from './ShortcutsModal';
 
 interface ContextMenu {
   x: number;
@@ -30,13 +31,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
   const updateWorkspacePath = store?.updateWorkspacePath;
   const config = store?.config;
   const availableShells = store?.availableShells || [];
+  
+  const isCollapsed = store?.isSidebarCollapsed;
+  const setIsCollapsed = store?.setSidebarCollapsed;
+  const showShellModal = store?.showShellModal;
+  const setShowShellModal = store?.setShowShellModal;
+  const showThemeModal = store?.showThemeModal;
+  const setShowThemeModal = store?.setShowThemeModal;
+  const showShortcutsModal = store?.showShortcutsModal;
+  const setShowShortcutsModal = store?.setShowShortcutsModal;
 
   const currentShellName = availableShells.find(s => s.path === config?.defaultShell)?.name || '';
 
   const [hoveredWs, setHoveredWs] = useState<string | null>(null);
-  const [showThemeModal, setShowThemeModal] = useState(false);
-  const [showShellModal, setShowShellModal] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [gitBranches, setGitBranches] = useState<Record<string, string>>({});
 
@@ -72,6 +79,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
       console.error('Failed to select directory:', err);
     }
   };
+
+  useEffect(() => {
+    (window as any).handleCreateWorkspace = handleCreateWorkspace;
+    return () => { delete (window as any).handleCreateWorkspace; };
+  }, [handleCreateWorkspace]);
 
   const handleDeleteWorkspace = async (ws: Workspace) => {
     const confirmed = await modalConfirm("Delete Workspace", `Are you sure you want to delete "${ws.name}"? This action cannot be undone.`);
@@ -352,11 +364,38 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
           <Palette size={18} style={{ marginRight: isCollapsed ? '0' : '12px', color: 'var(--accent)', flexShrink: 0 }} />
           {!isCollapsed && <span>Themes</span>}
         </div>
+
+        <div 
+          onClick={() => setShowShortcutsModal(true)}
+          title={isCollapsed ? 'Keyboard Shortcuts' : ''}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            padding: '12px',
+            borderRadius: 'var(--radius)',
+            fontSize: '14px', 
+            color: 'var(--text-main)', 
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            fontWeight: 600
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        >
+          <Keyboard size={18} style={{ marginRight: isCollapsed ? '0' : '12px', color: 'var(--accent)', flexShrink: 0 }} />
+          {!isCollapsed && <span>Shortcuts</span>}
+        </div>
       </div>
 
       <ShellSettingsModal 
         isOpen={showShellModal}
         onClose={() => setShowShellModal(false)}
+      />
+
+      <ShortcutsModal 
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
       />
 
       {/* Theme Modal */}

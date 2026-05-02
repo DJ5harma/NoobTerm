@@ -32,6 +32,12 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
   const isFocused = activeTerminalId === id;
 
   useEffect(() => {
+    if (isFocused && terminalInstance.current) {
+        terminalInstance.current.focus();
+    }
+  }, [isFocused]);
+
+  useEffect(() => {
     if (!containerRef.current) return;
 
     let isMounted = true;
@@ -54,6 +60,34 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
     xterm.loadAddon(new WebLinksAddon((event, url) => {
         BrowserOpenURL(url);
     }));
+
+    // Allow global shortcuts to pass through the terminal
+    xterm.attachCustomKeyEventHandler((e) => {
+        const isCtrl = e.ctrlKey || e.metaKey;
+        const isAlt = e.altKey;
+        
+        // Return FALSE to tell xterm to IGNORE it (bubbles to App.tsx)
+        // Return TRUE to tell xterm to process it normally (terminal input)
+        if (isCtrl && (
+            e.key === 'p' || 
+            e.key === 'n' || 
+            e.key === 'b' || 
+            e.key === 't' || 
+            e.key === 'w' || 
+            e.key === 'Tab' || 
+            e.key === '\\' || 
+            e.key === '|' || 
+            e.key === ','
+        )) {
+            return false;
+        }
+
+        if (isCtrl && isAlt && e.key.toLowerCase() === 't') {
+            return false;
+        }
+
+        return true;
+    });
 
     terminalInstance.current = xterm;
 
