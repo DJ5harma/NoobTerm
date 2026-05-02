@@ -232,42 +232,35 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
             onMouseEnter={() => setHoveredWs(ws.id)}
             onMouseLeave={() => setHoveredWs(null)}
             title={isCollapsed ? ws.name : ''}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: isCollapsed ? '12px 0' : '10px 12px',
+                margin: '2px 0',
+                borderRadius: 'var(--radius)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                position: 'relative',
+                gap: isCollapsed ? '0' : '12px'
+            }}
           >
-            <Folder size={20} style={{ 
-              marginRight: isCollapsed ? '0' : '14px', 
+            <Folder size={16} style={{ 
               color: activeWorkspaceId === ws.id ? 'var(--accent)' : 'var(--text-muted)',
               flexShrink: 0
             }} />
             {!isCollapsed && (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden', gap: '8px' }}>
-                    <span style={{ 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis', 
-                        whiteSpace: 'nowrap',
-                        fontSize: '13px',
-                        fontWeight: activeWorkspaceId === ws.id ? 700 : 500,
-                        color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-main)',
-                        flex: 1
-                    }}>{ws.name}</span>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                        {gitBranches[ws.id] && (
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '4px', 
-                                color: 'var(--accent)',
-                                backgroundColor: 'var(--accent-muted)',
-                                padding: '2px 8px',
-                                borderRadius: '10px',
-                                border: '1px solid var(--accent-muted)'
-                            }}>
-                                <GitBranch size={10} />
-                                <span style={{ fontSize: '10px', fontWeight: 800 }}>{gitBranches[ws.id]}</span>
-                            </div>
-                        )}
-
-                        <div style={{ width: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <span style={{ 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap',
+                            fontSize: '13px',
+                            fontWeight: activeWorkspaceId === ws.id ? 700 : 500,
+                            color: activeWorkspaceId === ws.id ? 'var(--text-bright)' : 'var(--text-main)',
+                        }}>{ws.name}</span>
+                        
+                        <div style={{ width: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
                             {hoveredWs === ws.id ? (
                                 <Trash2 
                                     size={14} 
@@ -296,6 +289,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
                             )}
                         </div>
                     </div>
+
+                    {gitBranches[ws.id] && (
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '4px', 
+                            color: 'var(--accent)',
+                            opacity: 0.8,
+                            marginTop: '1px'
+                        }}>
+                            <GitBranch size={10} />
+                            <span style={{ fontSize: '10px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {gitBranches[ws.id]}
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
           </div>
