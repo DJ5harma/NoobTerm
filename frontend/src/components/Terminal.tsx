@@ -7,7 +7,7 @@ import '@xterm/xterm/css/xterm.css';
 import { useThemeStore } from '../themeStore';
 import { useWorkspaceStore } from '../store';
 import { GetOrCreateTerminal, GetTerminalBuffer, WriteTerminal, ResizeTerminal } from '../../wailsjs/go/main/App';
-import { EventsOn, EventsOff, BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import { EventsOn, EventsOff, BrowserOpenURL, ClipboardGetText, ClipboardSetText } from '../../wailsjs/runtime/runtime';
 
 export interface TerminalStats {
   cpu: number;
@@ -26,6 +26,7 @@ interface TerminalProps {
 const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningChange, onStatsChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalInstance = useRef<XTerm | null>(null);
+  const backendIdRef = useRef<string>("");
   const { theme } = useThemeStore();
   const { activeTerminalId, setActiveTerminal } = useWorkspaceStore();
   
@@ -41,7 +42,6 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
     if (!containerRef.current) return;
 
     let isMounted = true;
-    let backendId = "";
 
     // 1. Setup XTerm with High-Fidelity Settings
     const xterm = new XTerm({
@@ -64,10 +64,34 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
     // Allow global shortcuts to pass through the terminal
     xterm.attachCustomKeyEventHandler((e) => {
         const isCtrl = e.ctrlKey || e.metaKey;
+        const isShift = e.shiftKey;
         const isAlt = e.altKey;
-        
-        // Return FALSE to tell xterm to IGNORE it (bubbles to App.tsx)
-        // Return TRUE to tell xterm to process it normally (terminal input)
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
+        // --- 1. Terminal Specific Copy/Paste Shortcuts ---
+
+        // Copy: Ctrl+Shift+C or Cmd+C (on Mac)
+        if ((isCtrl && isShift && e.key.toUpperCase() === 'C') || (isMac && isCtrl && e.key === 'c')) {
+            if (e.type === 'keydown' && xterm.hasSelection()) {
+                ClipboardSetText(xterm.getSelection());
+                xterm.clearSelection();
+            }
+            return false; // Handled
+        }
+
+        // Paste: Ctrl+Shift+V or Cmd+V (on Mac)
+        if ((isCtrl && isShift && e.key.toUpperCase() === 'V') || (isMac && isCtrl && e.key === 'v')) {
+            if (e.type === 'keydown') {
+                ClipboardGetText().then(text => {
+                    if (text && backendIdRef.current) WriteTerminal(backendIdRef.current, text);
+                });
+            }
+            return false; // Handled
+        }
+
+        // --- 2. Global App Shortcuts Bypass ---
+        // Return TRUE to tell xterm to IGNORE it (bubbles to App.tsx)
+        // Return FALSE to tell xterm to process it normally (terminal input)
         if (isCtrl && (
             e.key === 'p' || 
             e.key === 'n' || 
@@ -79,15 +103,16 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
             e.key === '|' || 
             e.key === ','
         )) {
-            return false;
+            return true;
         }
 
         if (isCtrl && isAlt && e.key.toLowerCase() === 't') {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     });
+
 
     terminalInstance.current = xterm;
 
@@ -103,18 +128,19 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
         } catch(e) {}
 
         // 4. Backend Connection (Persistent Session)
-        backendId = await GetOrCreateTerminal(id, cwd || '');
+        const bId = await GetOrCreateTerminal(id, cwd || '');
         if (!isMounted) return;
+        backendIdRef.current = bId;
 
         // 5. Restore History Buffer
-        const buffer = await GetTerminalBuffer(backendId);
+        const buffer = await GetTerminalBuffer(bId);
         if (isMounted && buffer) {
             xterm.write(buffer);
         }
 
         // 6. I/O Plumbing
         xterm.onData(data => {
-            if (isMounted) WriteTerminal(backendId, data);
+            if (isMounted && backendIdRef.current) WriteTerminal(backendIdRef.current, data);
         });
         
         const outputHandler = (data: string) => {
@@ -127,9 +153,9 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
             if (isMounted && onStatsChange) onStatsChange(stats);
         };
 
-        EventsOn(`terminal-output-${backendId}`, outputHandler);
-        EventsOn(`terminal-state-${backendId}`, stateHandler);
-        EventsOn(`terminal-stats-${backendId}`, statsHandler);
+        EventsOn(`terminal-output-${bId}`, outputHandler);
+        EventsOn(`terminal-state-${bId}`, stateHandler);
+        EventsOn(`terminal-stats-${bId}`, statsHandler);
 
         // 7. Sizing & Focus
         // @ts-ignore
@@ -141,7 +167,7 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
         const resizeObserver = new ResizeObserver(() => {
           if (isMounted) {
             fitAddon.fit();
-            ResizeTerminal(backendId, xterm.cols, xterm.rows);
+            ResizeTerminal(bId, xterm.cols, xterm.rows);
           }
         });
         resizeObserver.observe(containerRef.current!);
@@ -159,9 +185,9 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
 
         return () => {
             isMounted = false;
-            EventsOff(`terminal-output-${backendId}`);
-            EventsOff(`terminal-state-${backendId}`);
-            EventsOff(`terminal-stats-${backendId}`);
+            EventsOff(`terminal-output-${bId}`);
+            EventsOff(`terminal-state-${bId}`);
+            EventsOff(`terminal-stats-${bId}`);
             resizeObserver.disconnect();
             xterm.dispose();
         };
@@ -184,9 +210,26 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
     }
   }, [theme]);
 
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (terminalInstance.current) {
+        if (terminalInstance.current.hasSelection()) {
+            ClipboardSetText(terminalInstance.current.getSelection());
+            terminalInstance.current.clearSelection();
+        } else {
+            ClipboardGetText().then(text => {
+                if (text && backendIdRef.current) {
+                    WriteTerminal(backendIdRef.current, text);
+                }
+            });
+        }
+    }
+  };
+
   return (
     <div 
         onMouseDown={() => setActiveTerminal(id)}
+        onContextMenu={onContextMenu}
         className={`terminal-container ${isFocused ? 'focused' : ''}`}
         style={{ 
             width: '100%', 
