@@ -64,7 +64,7 @@ const StatusBar: React.FC = () => {
             textTransform: 'uppercase',
             letterSpacing: '0.3px'
         }}>
-          {openPorts.length > 0 ? `${openPorts.length} Active` : 'No Ports'}
+          {openPorts.length > 0 ? `${openPorts.length} Ports active` : 'No Ports'}
         </span>
         
         <div style={{ display: 'flex', gap: '6px', marginLeft: '4px' }}>
