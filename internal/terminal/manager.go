@@ -46,7 +46,7 @@ type Manager struct {
 
 func NewManager() *Manager {
 	home, _ := os.UserHomeDir()
-	configDir := filepath.Join(home, ".termspace")
+	configDir := filepath.Join(home, ".noobterm")
 	os.MkdirAll(configDir, 0755)
 	configPath := filepath.Join(configDir, "config.json")
 

@@ -5,7 +5,7 @@ This is structured like a real product spec + architecture doc so it doesn’t d
 
 # 🧠 PRODUCT VISION
 
-**Name (working):** Termspace
+**Name:** NoobTerm
 **Category:** GUI-first terminal workspace manager
 
 > A desktop app where developers manage projects as visual workspaces, each containing terminals, layouts, and reusable command blocks — fully persistent and GUI-driven.
@@ -319,7 +319,7 @@ Why:
 Location:
 
 ```text
-~/.termspace/workspaces/
+~/.noobterm/workspaces/
 ```
 
 ---

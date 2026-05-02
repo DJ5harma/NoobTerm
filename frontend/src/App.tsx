@@ -414,7 +414,7 @@ function App() {
         ) : (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             <div className="fade-in" style={{ textAlign: 'center', opacity: 0.5 }}>
-               <h1 style={{ fontSize: '3rem', margin: 0 }}>Termspace</h1>
+               <h1 style={{ fontSize: '3rem', margin: 0 }}>NoobTerm</h1>
                <p>Select a workspace to start your journey!</p>
             </div>
           </div>

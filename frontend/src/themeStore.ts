@@ -15,7 +15,7 @@ export const useThemeStore = create<ThemeState>()(
       setTheme: (theme) => set({ theme }),
     }),
     {
-      name: 'termspace-theme-v2',
+      name: 'noobterm-theme-v2',
     }
   )
 );
