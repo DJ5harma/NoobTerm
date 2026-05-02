@@ -1,9 +1,9 @@
 import { create } from 'zustand';
-import { workspace } from '../../wailsjs/go/models';
+import { models } from '../../wailsjs/go/models';
 import { GetOpenPorts, GetSystemStats } from '../../wailsjs/go/main/App';
 
-export type PortInfo = workspace.PortInfo;
-export type SystemStats = workspace.SystemStats;
+export type PortInfo = models.PortInfo;
+export type SystemStats = models.SystemStats;
 
 interface SystemState {
   openPorts: PortInfo[];

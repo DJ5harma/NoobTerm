@@ -1,35 +1,4 @@
-export namespace terminal {
-	
-	export class Config {
-	    defaultShell: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new Config(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.defaultShell = source["defaultShell"];
-	    }
-	}
-	export class ShellInfo {
-	    name: string;
-	    path: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new ShellInfo(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.name = source["name"];
-	        this.path = source["path"];
-	    }
-	}
-
-}
-
-export namespace workspace {
+export namespace models {
 	
 	export class CommandVariable {
 	    name: string;
@@ -88,6 +57,18 @@ export namespace workspace {
 		}
 	}
 	
+	export class Config {
+	    defaultShell: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Config(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.defaultShell = source["defaultShell"];
+	    }
+	}
 	export class MemoryStats {
 	    total: number;
 	    used: number;
@@ -138,6 +119,20 @@ export namespace workspace {
 	        this.cpu = source["cpu"];
 	        this.memory = source["memory"];
 	        this.memoryRss = source["memoryRss"];
+	    }
+	}
+	export class ShellInfo {
+	    name: string;
+	    path: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ShellInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
 	    }
 	}
 	export class SystemStats {

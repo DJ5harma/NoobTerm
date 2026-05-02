@@ -8,6 +8,8 @@ import (
 	"NoobTerm/internal/system"
 	"NoobTerm/internal/terminal"
 	"NoobTerm/internal/workspace"
+
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -74,6 +76,12 @@ func (a *App) GetOpenPorts() ([]models.PortInfo, error) {
 
 func (a *App) GetSystemStats() (*models.SystemStats, error) {
 	return system.GetSystemStats()
+}
+
+func (a *App) SelectDirectory() (string, error) {
+	return wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "Select Workspace Directory",
+	})
 }
 
 // Workspace methods

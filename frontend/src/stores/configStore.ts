@@ -1,9 +1,9 @@
 import { create } from 'zustand';
-import { terminal } from '../../wailsjs/go/models';
+import { models } from '../../wailsjs/go/models';
 import { GetConfig, SaveConfig, GetAvailableShells } from '../../wailsjs/go/main/App';
 
-export type Config = terminal.Config;
-export type ShellInfo = terminal.ShellInfo;
+export type Config = models.Config;
+export type ShellInfo = models.ShellInfo;
 
 interface ConfigState {
   config: Config | null;

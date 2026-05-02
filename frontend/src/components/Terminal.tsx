@@ -90,8 +90,8 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
         }
 
         // --- 2. Global App Shortcuts Bypass ---
-        // Return TRUE to tell xterm to IGNORE it (bubbles to App.tsx)
-        // Return FALSE to tell xterm to process it normally (terminal input)
+        // Return FALSE to tell xterm to IGNORE it (bubbles to App.tsx)
+        // Return TRUE to tell xterm to process it normally (terminal input)
         if (isCtrl && (
             e.key === 'p' || 
             e.key === 'n' || 
@@ -103,14 +103,14 @@ const Terminal: React.FC<TerminalProps> = ({ id, cwd, onTitleChange, onRunningCh
             e.key === '|' || 
             e.key === ','
         )) {
-            return true;
+            return false;
         }
 
         if (isCtrl && isAlt && e.key.toLowerCase() === 't') {
-            return true;
+            return false;
         }
 
-        return false;
+        return true;
     });
 
 

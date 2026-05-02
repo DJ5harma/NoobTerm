@@ -1,10 +1,10 @@
-import { workspace, terminal } from '../wailsjs/go/models';
+import { models } from '../wailsjs/go/models';
 
-export type Workspace = workspace.Workspace;
-export type Command = workspace.Command;
-export type CommandVariable = workspace.CommandVariable;
-export type Config = terminal.Config;
-export type ShellInfo = terminal.ShellInfo;
-export type PortInfo = workspace.PortInfo;
-export type SystemStats = workspace.SystemStats;
-export type ProcessInfo = workspace.ProcessInfo;
+export type Workspace = models.Workspace;
+export type Command = models.Command;
+export type CommandVariable = models.CommandVariable;
+export type Config = models.Config;
+export type ShellInfo = models.ShellInfo;
+export type PortInfo = models.PortInfo;
+export type SystemStats = models.SystemStats;
+export type ProcessInfo = models.ProcessInfo;

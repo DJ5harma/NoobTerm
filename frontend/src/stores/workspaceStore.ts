@@ -1,11 +1,11 @@
 import { create } from 'zustand';
-import { workspace } from '../../wailsjs/go/models';
+import { models } from '../../wailsjs/go/models';
 import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace } from '../../wailsjs/go/main/App';
 import { useModalStore } from '../modalStore';
 import { v4 as uuidv4 } from 'uuid';
 
-export type Workspace = workspace.Workspace;
-export type Command = workspace.Command;
+export type Workspace = models.Workspace;
+export type Command = models.Command;
 
 interface WorkspaceState {
   workspaces: Workspace[];
