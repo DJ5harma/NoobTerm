@@ -230,10 +230,16 @@ function App() {
                 name={renderValues.content}
                 isRunning={runningTerminals.has(config.id)}
                 stats={terminalStats[config.id]}
+                onClose={() => {
+                  if (model) {
+                    model.doAction(Actions.deleteTab(node.getId()));
+                    saveLayout();
+                  }
+                }}
             />
         );
     }
-  }, [runningTerminals, terminalStats]);
+  }, [runningTerminals, terminalStats, model, saveLayout]);
 
   const onContextMenu = useCallback((node: TabNode | TabSetNode | BorderNode, event: React.MouseEvent) => {
     if (node instanceof TabNode) {

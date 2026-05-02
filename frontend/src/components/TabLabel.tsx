@@ -6,11 +6,22 @@ interface TabLabelProps {
     name: string;
     isRunning: boolean;
     stats?: TerminalStats;
+    onClose?: () => void;
 }
 
-const TabLabel: React.FC<TabLabelProps> = ({ name, isRunning, stats }) => {
+const TabLabel: React.FC<TabLabelProps> = ({ name, isRunning, stats, onClose }) => {
+    const handleAuxClick = (e: React.MouseEvent) => {
+        if (e.button === 1 && onClose) {
+            e.preventDefault();
+            onClose();
+        }
+    };
+
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, width: '100%' }}>
+        <div 
+            onAuxClick={handleAuxClick}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, width: '100%', height: '100%' }}
+        >
             {isRunning && (
                 <div className="pulse-dot" style={{ 
                     width: '6px', 
