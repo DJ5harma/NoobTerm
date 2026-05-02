@@ -85,6 +85,10 @@ func (a *App) GetOpenPorts() ([]workspace.PortInfo, error) {
 	return workspace.GetOpenPorts()
 }
 
+func (a *App) GetSystemStats() (*workspace.SystemStats, error) {
+	return workspace.GetSystemStats()
+}
+
 // Workspace methods
 
 func (a *App) CreateWorkspace(name, path string) (*workspace.Workspace, error) {

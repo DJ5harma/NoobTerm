@@ -39,3 +39,23 @@ type PortInfo struct {
 	Process string `json:"process"`
 	PID     int32  `json:"pid"`
 }
+
+type SystemStats struct {
+	CPUUsage    float64       `json:"cpuUsage"`
+	MemoryUsage MemoryStats   `json:"memoryUsage"`
+	Processes   []ProcessInfo `json:"processes"`
+}
+
+type MemoryStats struct {
+	Total       uint64  `json:"total"`
+	Used        uint64  `json:"used"`
+	UsedPercent float64 `json:"usedPercent"`
+}
+
+type ProcessInfo struct {
+	PID       int32   `json:"pid"`
+	Name      string  `json:"name"`
+	CPU       float64 `json:"cpu"`
+	Memory    float32 `json:"memory"`
+	MemoryRSS uint64  `json:"memoryRss"`
+}

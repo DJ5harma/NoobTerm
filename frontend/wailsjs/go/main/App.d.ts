@@ -17,6 +17,8 @@ export function GetOpenPorts():Promise<Array<workspace.PortInfo>>;
 
 export function GetOrCreateTerminal(arg1:string,arg2:string):Promise<string>;
 
+export function GetSystemStats():Promise<workspace.SystemStats>;
+
 export function GetTerminalBuffer(arg1:string):Promise<string>;
 
 export function ListWorkspaces():Promise<Array<workspace.Workspace>>;

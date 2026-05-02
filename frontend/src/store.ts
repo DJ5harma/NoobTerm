@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { workspace, terminal } from '../wailsjs/go/models';
-import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace, GetConfig, SaveConfig, GetAvailableShells, GetOpenPorts } from '../wailsjs/go/main/App';
+import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace, GetConfig, SaveConfig, GetAvailableShells, GetOpenPorts, GetSystemStats } from '../wailsjs/go/main/App';
 import { useModalStore } from './modalStore';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,6 +9,7 @@ export type Command = workspace.Command;
 export type Config = terminal.Config;
 export type ShellInfo = terminal.ShellInfo;
 export type PortInfo = workspace.PortInfo;
+export type SystemStats = workspace.SystemStats;
 
 interface WorkspaceState {
   workspaces: Workspace[];
@@ -17,21 +18,25 @@ interface WorkspaceState {
   config: Config | null;
   availableShells: ShellInfo[];
   openPorts: PortInfo[];
+  systemStats: SystemStats | null;
   isSidebarCollapsed: boolean;
   showShellModal: boolean;
   showThemeModal: boolean;
   showShortcutsModal: boolean;
+  showDashboard: boolean;
 
   fetchWorkspaces: () => Promise<void>;
   fetchConfig: () => Promise<void>;
   fetchAvailableShells: () => Promise<void>;
   fetchOpenPorts: () => Promise<void>;
+  fetchSystemStats: () => Promise<void>;
   setActiveWorkspace: (id: string | null) => void;
   setActiveTerminal: (id: string | null) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setShowShellModal: (show: boolean) => void;
   setShowThemeModal: (show: boolean) => void;
   setShowShortcutsModal: (show: boolean) => void;
+  setShowDashboard: (show: boolean) => void;
   
   createWorkspace: (name: string, path: string) => Promise<void>;
   saveWorkspace: (ws: Workspace) => Promise<void>;
@@ -110,15 +115,27 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   config: null,
   availableShells: [],
   openPorts: [],
+  systemStats: null,
   isSidebarCollapsed: false,
   showShellModal: false,
   showThemeModal: false,
   showShortcutsModal: false,
+  showDashboard: false,
 
   setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
   setShowShellModal: (show) => set({ showShellModal: show }),
   setShowThemeModal: (show) => set({ showThemeModal: show }),
   setShowShortcutsModal: (show) => set({ showShortcutsModal: show }),
+  setShowDashboard: (show) => set({ showDashboard: show }),
+
+  fetchSystemStats: async () => {
+    try {
+      const stats = await GetSystemStats();
+      set({ systemStats: stats });
+    } catch (err) {
+      console.error('Failed to fetch system stats:', err);
+    }
+  },
 
   fetchOpenPorts: async () => {
     try {

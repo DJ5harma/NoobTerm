@@ -6,3 +6,5 @@ export type CommandVariable = workspace.CommandVariable;
 export type Config = terminal.Config;
 export type ShellInfo = terminal.ShellInfo;
 export type PortInfo = workspace.PortInfo;
+export type SystemStats = workspace.SystemStats;
+export type ProcessInfo = workspace.ProcessInfo;

@@ -30,6 +30,10 @@ export function GetOrCreateTerminal(arg1, arg2) {
   return window['go']['main']['App']['GetOrCreateTerminal'](arg1, arg2);
 }
 
+export function GetSystemStats() {
+  return window['go']['main']['App']['GetSystemStats']();
+}
+
 export function GetTerminalBuffer(arg1) {
   return window['go']['main']['App']['GetTerminalBuffer'](arg1);
 }

@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useWorkspaceStore, Workspace } from '../store';
 import { useThemeStore, ThemeType } from '../themeStore';
 import { useModalStore } from '../modalStore';
-import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch, Terminal as TerminalIcon, Keyboard } from 'lucide-react';
+import { Folder, Plus, Trash2, Palette, Check, ChevronLeft, ChevronRight, Edit3, Search, GitBranch, Terminal as TerminalIcon, Keyboard, LayoutDashboard } from 'lucide-react';
 import { SelectDirectory } from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 import Logo from '../assets/images/logo_2.png';
 import ShellSettingsModal from './ShellSettingsModal';
 import ShortcutsModal from './ShortcutsModal';
+import Dashboard from './Dashboard';
 
 interface ContextMenu {
   x: number;
@@ -40,6 +41,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
   const setShowThemeModal = store?.setShowThemeModal;
   const showShortcutsModal = store?.showShortcutsModal;
   const setShowShortcutsModal = store?.setShowShortcutsModal;
+  const showDashboard = store?.showDashboard;
+  const setShowDashboard = store?.setShowDashboard;
 
   const currentShellName = availableShells.find(s => s.path === config?.defaultShell)?.name || '';
 
@@ -353,6 +356,28 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
         </div>
 
         <div 
+          onClick={() => setShowDashboard(true)}
+          title={isCollapsed ? 'System Monitor' : ''}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            padding: '12px',
+            borderRadius: 'var(--radius)',
+            fontSize: '14px', 
+            color: 'var(--text-main)', 
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            fontWeight: 600
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-active)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        >
+          <LayoutDashboard size={18} style={{ marginRight: isCollapsed ? '0' : '12px', color: 'var(--accent)', flexShrink: 0 }} />
+          {!isCollapsed && <span>System Monitor</span>}
+        </div>
+
+        <div 
           onClick={() => setShowThemeModal(true)}
           title={isCollapsed ? 'Themes' : ''}
           style={{ 
@@ -406,6 +431,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onSearchClick }) => {
         isOpen={showShortcutsModal}
         onClose={() => setShowShortcutsModal(false)}
       />
+
+      {showDashboard && <Dashboard />}
 
       {/* Theme Modal */}
       {showThemeModal && (
