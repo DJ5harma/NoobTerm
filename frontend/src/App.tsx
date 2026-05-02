@@ -6,6 +6,7 @@ import 'flexlayout-react/style/dark.css';
 import Sidebar from './components/Sidebar';
 import Terminal from './components/Terminal';
 import CommandBar from './components/CommandBar';
+import StatusBar from './components/StatusBar';
 import GlobalModal from './components/GlobalModal';
 import TabLabel from './components/TabLabel';
 import TerminalContextMenu from './components/TerminalContextMenu';
@@ -410,6 +411,7 @@ function App() {
             </div>
           </div>
         )}
+        <StatusBar />
       </div>
 
       {contextMenu && (

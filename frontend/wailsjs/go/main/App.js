@@ -22,6 +22,10 @@ export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
 
+export function GetOpenPorts() {
+  return window['go']['main']['App']['GetOpenPorts']();
+}
+
 export function GetOrCreateTerminal(arg1, arg2) {
   return window['go']['main']['App']['GetOrCreateTerminal'](arg1, arg2);
 }

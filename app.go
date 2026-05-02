@@ -81,6 +81,10 @@ func (a *App) SaveConfig(config terminal.Config) error {
 	return a.terminalManager.SaveConfig(config)
 }
 
+func (a *App) GetOpenPorts() ([]workspace.PortInfo, error) {
+	return workspace.GetOpenPorts()
+}
+
 // Workspace methods
 
 func (a *App) CreateWorkspace(name, path string) (*workspace.Workspace, error) {

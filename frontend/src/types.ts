@@ -5,3 +5,4 @@ export type Command = workspace.Command;
 export type CommandVariable = workspace.CommandVariable;
 export type Config = terminal.Config;
 export type ShellInfo = terminal.ShellInfo;
+export type PortInfo = workspace.PortInfo;

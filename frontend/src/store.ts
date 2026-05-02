@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { workspace, terminal } from '../wailsjs/go/models';
-import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace, GetConfig, SaveConfig, GetAvailableShells } from '../wailsjs/go/main/App';
+import { SaveWorkspace, ListWorkspaces, CreateWorkspace, DeleteWorkspace, GetConfig, SaveConfig, GetAvailableShells, GetOpenPorts } from '../wailsjs/go/main/App';
 import { useModalStore } from './modalStore';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -8,6 +8,7 @@ export type Workspace = workspace.Workspace;
 export type Command = workspace.Command;
 export type Config = terminal.Config;
 export type ShellInfo = terminal.ShellInfo;
+export type PortInfo = workspace.PortInfo;
 
 interface WorkspaceState {
   workspaces: Workspace[];
@@ -15,6 +16,7 @@ interface WorkspaceState {
   activeTerminalId: string | null;
   config: Config | null;
   availableShells: ShellInfo[];
+  openPorts: PortInfo[];
   isSidebarCollapsed: boolean;
   showShellModal: boolean;
   showThemeModal: boolean;
@@ -23,6 +25,7 @@ interface WorkspaceState {
   fetchWorkspaces: () => Promise<void>;
   fetchConfig: () => Promise<void>;
   fetchAvailableShells: () => Promise<void>;
+  fetchOpenPorts: () => Promise<void>;
   setActiveWorkspace: (id: string | null) => void;
   setActiveTerminal: (id: string | null) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
@@ -106,6 +109,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   activeTerminalId: null,
   config: null,
   availableShells: [],
+  openPorts: [],
   isSidebarCollapsed: false,
   showShellModal: false,
   showThemeModal: false,
@@ -115,6 +119,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setShowShellModal: (show) => set({ showShellModal: show }),
   setShowThemeModal: (show) => set({ showThemeModal: show }),
   setShowShortcutsModal: (show) => set({ showShortcutsModal: show }),
+
+  fetchOpenPorts: async () => {
+    try {
+      const ports = await GetOpenPorts();
+      set({ openPorts: ports || [] });
+    } catch (err) {
+      console.error('Failed to fetch open ports:', err);
+    }
+  },
 
   fetchConfig: async () => {
     try {

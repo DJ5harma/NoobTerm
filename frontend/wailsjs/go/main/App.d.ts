@@ -13,6 +13,8 @@ export function GetAvailableShells():Promise<Array<terminal.ShellInfo>>;
 
 export function GetConfig():Promise<terminal.Config>;
 
+export function GetOpenPorts():Promise<Array<workspace.PortInfo>>;
+
 export function GetOrCreateTerminal(arg1:string,arg2:string):Promise<string>;
 
 export function GetTerminalBuffer(arg1:string):Promise<string>;

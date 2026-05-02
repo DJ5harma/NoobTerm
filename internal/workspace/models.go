@@ -33,3 +33,9 @@ type ShellInfo struct {
 	Name string `json:"name"`
 	Path string `json:"path"`
 }
+
+type PortInfo struct {
+	Port    int    `json:"port"`
+	Process string `json:"process"`
+	PID     int32  `json:"pid"`
+}
